@@ -147,8 +147,6 @@ class Game extends React.Component {
         this.walletAccount.requestSignIn(
             contractId,
             appTitle,
-            baseUrl + '/',
-            baseUrl + '/',
         );
     }
     logout = () => {
