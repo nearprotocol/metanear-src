@@ -16,19 +16,32 @@ export function hello(): string {
 
 
 // Items
+let inventories = collections.map<string, Inventory>("inventories");
 
 export function getItems(accountId: string): Inventory {
-  return <Inventory>(getPlayer(accountId).inventory);
+  if (inventories.containsKey(accountId)) {
+    return inventories.get(accountId);
+  } else {
+    return <Inventory>(Inventory.withAccountId(accountId));
+  }
+}
+
+function saveInventory(inventory: Inventory): void {
+  inventories.set(inventory.accountId, inventory);
+}
+
+function assertPlayerCell(accountId: string): void {
+  let player = getPlayer(accountId);
+  let cell = getCell(<Location>(player.location));
+  assert(cell.contractId == context.sender, "The player " + accountId + " is not at your cell");
 }
 
 export function addItem(accountId: string, itemId: string): void {
-  let player = getPlayer(accountId);
-  let cell = getCell(<Location>(player.location));
-  assert(cell.contractId == context.sender, "The player is not at your cell");
+  let inventory = getItems(accountId);
   let itemToAdd = new InventoryItem();
   itemToAdd.name = itemId;
-  player.inventory.items.push(itemToAdd);
-  savePlayer(player);
+  inventory.items.push(itemToAdd);
+  saveInventory(inventory);
 }
 
 // Player APIs
@@ -80,7 +93,7 @@ function getCell(location: Location): Cell {
   } else {
     let cell = new Cell();
     cell.location = location;
-    cell.viewIndex = 0;
+    cell.viewIndex = abs(location.x + location.y) % 4;
     return cell;
   }
 }
@@ -118,6 +131,15 @@ export function init(isTest: bool): void {
 
   storage.set<bool>("initiated", true);
   cellViews.push({
-    imageUrl: "/imgs/grass.png",
+    imageUrl: "/imgs/grass0.png",
+  });
+  cellViews.push({
+    imageUrl: "/imgs/grass1.png",
+  });
+  cellViews.push({
+    imageUrl: "/imgs/grass2.png",
+  });
+  cellViews.push({
+    imageUrl: "/imgs/grass3.png",
   });
 }

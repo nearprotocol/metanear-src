@@ -37,19 +37,20 @@ describe("Greeter", function() {
         //expect(result).toBe("Hello, world");
       });
 
-      it("invenotry tests", async function() {
+      it("inventory tests", async function() {
         await contract.init({isTest: true});
         const emptyInv = await contract.getItems({accountId});
         expect(emptyInv).toEqual({
+          accountId,
           "items": []
         });
         const resultAdd = await contract.addItem({accountId, itemId: "myItem"});
         const result = await contract.getItems({accountId});
-        expect(result).toEqual( {"items": [{"name": "myItem"}]});
+        expect(result).toEqual( {accountId, "items": [{"name": "myItem"}]});
 
         const resultAdd2 = await contract.addItem({accountId, itemId: "myItem2"});
         const result2 = await contract.getItems({accountId});
-        expect(result2).toEqual( {"items": [{"name": "myItem"}, {"name": "myItem2"}]});
+        expect(result2).toEqual( {accountId, "items": [{"name": "myItem"}, {"name": "myItem2"}]});
       });
   });
 });

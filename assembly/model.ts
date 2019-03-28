@@ -7,10 +7,12 @@ export class InventoryItem {
 }
 
 export class Inventory {
+  accountId: string;
   items: InventoryItem[];
 
-  static create(): Inventory {
+  static withAccountId(accountId: string): Inventory {
     return {
+      accountId,
       items: [],
     };
   }
@@ -43,13 +45,11 @@ export class Cell {
 export class Player {
   accountId: string;
   location: Location;
-  inventory: Inventory;
 
   static withAccountId(accountId: string): Player {
     return {
       accountId,
       location: Location.create(),
-      inventory: Inventory.create(),
     };
   }
 }
