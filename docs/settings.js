@@ -3,4 +3,4 @@ const settings = {
     createAccount: nearlib.dev.createAccountWithLocalNodeConnection
   },
 };
-const contractName = "contract2"; /* TODO: fill this in! */
+const contractName = "metanear"; /* TODO: fill this in! */
