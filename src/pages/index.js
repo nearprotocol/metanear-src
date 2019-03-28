@@ -73,6 +73,14 @@ class WalletLogout extends React.Component {
     }
 }
 
+class MiniGameView extends React.Component {
+    render() {
+        return (
+            <iframe src={this.props.url} />
+        )
+    }
+}
+
 class Game extends React.Component {
     constructor(props) {
         super(props)
@@ -147,7 +155,6 @@ class Game extends React.Component {
                 this.setState({ cells: view.cells || [] })
             })
         })
-        // console.log(this.state.highlighCell)
     }
     render() {
         let control;
@@ -155,6 +162,16 @@ class Game extends React.Component {
             control = <WalletLogout accountId={this.walletAccount.getAccountId()} onClick={this.logout} />
         } else {
             control = <WalletLogin onClick={this.login} />
+        }
+        let cell = null;
+        if (this.state.player) {
+            for (let i = 0; i < this.state.cells.length; ++i) {
+                if (this.state.cells[i].location.x == this.state.player.location.x && this.state.cells[i].location.y == this.state.player.location.y) {
+                    cell = this.state.cells[i]
+                    break
+                }
+            }
+            console.log("I'm in " + JSON.stringify(this.state.player) + JSON.stringify(cell))
         }
         return (
             <div>
@@ -166,6 +183,7 @@ class Game extends React.Component {
                 onClick={this.movePlayer} />
                 <div>Highlighted cell: {JSON.stringify(this.state.highlighCell)}</div>
                 <div>Player: {JSON.stringify(this.state.player)}</div>
+                {cell && <MiniGameView url={cell.webUrl} contractId={cell.contractId} />}
             </div>
         )
     }
