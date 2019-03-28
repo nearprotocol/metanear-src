@@ -1,0 +1,24 @@
+{
+  "name": "@wasm/metanear",
+  "description": "Meta world on NEAR Protocol",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node_modules/near-shell/near build",
+    "test": "jest test --env=./local_test_environment.js"
+  },
+  "devDependencies": {
+    "assemblyscript": "github:nearprotocol/assemblyscript.git",
+    "gulp": "^3",
+    "assemblyscript-json": "github:nearprotocol/assemblyscript-json",
+    "jest": "^22.4.4",
+    "jest-environment-node": "^24.5.0",
+    "near-runtime-ts": "github:nearprotocol/near-runtime-ts#storage-contrainers",
+    "near-shell": "github:nearprotocol/near-shell"
+  },
+  "wasmStudio": {
+    "name": "Meta world on NEAR Protocol",
+    "description": "The most epic game ever created for the decentralized Meta world",
+    "icon": "typescript-lang-file-icon"
+  },
+  "dependencies": {}
+}
