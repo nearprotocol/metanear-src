@@ -10,4 +10,7 @@ Local dev:
 Export:
     
     npm run build
-    npm rin export
+    npm run export
+    rm -rf ../docs/_next
+    mv out/* ../docs/
+    
