@@ -349,7 +349,7 @@ function (_React$Component5) {
     });
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_10__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_8__["default"])(_this3), "login", function () {
-      _this3.walletAccount.requestSignIn(contractId, appTitle, baseUrl + '/', baseUrl + '/');
+      _this3.walletAccount.requestSignIn(contractId, appTitle);
     });
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_10__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_8__["default"])(_this3), "logout", function () {});
@@ -473,4 +473,4 @@ function Index() {
 /***/ })
 
 })
-//# sourceMappingURL=index.js.c5349b4421778004f8c0.hot-update.js.map
+//# sourceMappingURL=index.js.cbf306f4243df4e58615.hot-update.js.map
