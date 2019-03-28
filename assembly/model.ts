@@ -20,11 +20,8 @@ export class Location {
   x: i32;
   y: i32;
   
-  static create(): Location {
-    return {
-      x: 0,
-      y: 0,
-    }
+  static create(x: i32 = 0, y: i32 = 0): Location {
+    return {x, y};
   }
 }
 

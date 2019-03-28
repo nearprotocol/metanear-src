@@ -5,6 +5,9 @@ import { context, storage, near, collections } from "./near";
 
 import { Cell, Inventory, InventoryItem, Location, Player, View, CellView } from "./model.near";
 
+const HOW_FAR_YOU_SEE: i32 = 7;
+const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
+
 // --- contract code goes below
 
 export function hello(): string {
@@ -16,10 +19,6 @@ export function hello(): string {
 
 export function getItems(accountId: string): Inventory {
   return <Inventory>(getPlayer(accountId).inventory);
-}
-
-export function getMyItems(): Inventory {
-  return <Inventory>(myPlayer().inventory);
 }
 
 export function addItem(accountId: string, itemId: string): void {
@@ -48,11 +47,6 @@ export function getPlayer(accountId: string): Player {
   }
 }
 
-export function myPlayer(): Player {
-  return getPlayer(context.sender);
-}
-
-
 // Cells
 
 let cellViews = collections.vector<CellView>("cellViews");
@@ -74,17 +68,25 @@ function getCell(location: Location): Cell {
     let cell = new Cell();
     cell.location = location;
     cell.viewIndex = 0;
-    saveCell(cell);
     return cell;
   }
 }
 
-export function lookAround(): View {
-  let p = myPlayer();
+export function lookAround(accountId: string): View {
+  let p = getPlayer(accountId);
   let view = new View();
+  view.cells = new Array<Cell>(NUM_CELLS_YOU_SEE);
+  let n = 0;
+  for (let i = -HOW_FAR_YOU_SEE; i <= HOW_FAR_YOU_SEE; ++i) {
+    for (let j = -HOW_FAR_YOU_SEE; j <= HOW_FAR_YOU_SEE; ++j) {
+      if (i * i + j * j <= HOW_FAR_YOU_SEE * HOW_FAR_YOU_SEE) {
+        // inside
+        view.cells[n++] = getCell(<Location>(Location.create(p.location.x + j, p.location.y + i)));
+      }
+    }
+  }
   return view;
 }
-
 
 // Init function
 
