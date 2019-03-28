@@ -16,36 +16,40 @@ class Grid extends React.Component {
         const ctx = canvas.getContext("2d")
         ctx.clearRect(0, 0, this.props.width, this.props.height);
         ctx.fillStyle = "#FF0000";
-        for (let i = 0; i < this.props.width / this.props.cellWidth; ++i) {
+        const centerX = this.props.width / 2 - this.props.cellWidth / 2
+        const centerY = this.props.height / 2 - this.props.cellHeight / 2
+        const cellNumberX = this.props.width / this.props.cellWidth
+        const cellNumberY = this.props.height / this.props.cellHeight
+        for (let i =  - cellNumberX / 2; i < cellNumberX / 2; ++i) {
             ctx.beginPath()
-            ctx.moveTo(i * this.props.cellWidth, 0)
-            ctx.lineTo(i * this.props.cellWidth, this.props.height)
+            ctx.moveTo(centerX + i * this.props.cellWidth, 0)
+            ctx.lineTo(centerX + i * this.props.cellWidth, this.props.height)
             ctx.stroke()
         }
-        for (let i = 0; i < this.props.height / this.props.cellHeight; ++i) {
+        for (let i = - cellNumberY; i < cellNumberY; ++i) {
             ctx.beginPath()
-            ctx.moveTo(0, i * this.props.cellHeight)
-            ctx.lineTo(this.props.width, i * this.props.cellHeight)
+            ctx.moveTo(0, centerY + (i - 0.7) * this.props.cellHeight)
+            ctx.lineTo(this.props.width, centerY + (i - 0.7) * this.props.cellHeight)
             ctx.stroke()
         }
         Object.values(this.props.allCells).forEach((cell) => {
             ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA", "#333333"][cell.viewIndex]
             ctx.fillRect(
-                (cell.location.x) * this.props.cellWidth,
-                (cell.location.y) * this.props.cellHeight,
+                centerX + (cell.location.x - this.props.playerX) * this.props.cellWidth,
+                centerY + (cell.location.y - this.props.playerY) * this.props.cellHeight,
                 this.props.cellWidth,
                 this.props.cellHeight)
         })
         Object.values(this.props.cells).forEach((cell) => {
             ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF", "#666666"][cell.viewIndex]
             ctx.fillRect(
-                (cell.location.x) * this.props.cellWidth,
-                (cell.location.y) * this.props.cellHeight,
+                centerX + (cell.location.x - this.props.playerX) * this.props.cellWidth,
+                centerY + (cell.location.y - this.props.playerY) * this.props.cellHeight,
                 this.props.cellWidth,
                 this.props.cellHeight)
         })
         ctx.beginPath()
-        ctx.arc((this.props.playerX + 0.5) * this.props.cellWidth, (this.props.playerY + 0.5) * this.props.cellHeight, this.props.cellWidth / 2 - 3, 0, 2 * Math.PI)
+        ctx.arc(centerX + (0.5) * this.props.cellWidth, centerY + (0.5) * this.props.cellHeight, this.props.cellWidth / 2 - 3, 0, 2 * Math.PI)
         ctx.stroke()
         document.addEventListener('mousemove', this.onMouseMove, false)
     }
@@ -53,7 +57,9 @@ class Grid extends React.Component {
         document.removeEventListener('mousemove', this.onMouseMove, false)
     }
     onMouseMove = (e) => {
-        this.props.onHighlight(Math.floor(e.offsetX / this.props.cellWidth), Math.floor(e.offsetY / this.props.cellHeight))
+        const centerX = this.props.width / 2 - this.props.cellWidth / 2
+        const centerY = this.props.height / 2 - this.props.cellHeight / 2
+        this.props.onHighlight(Math.floor((e.offsetX - centerX) / this.props.cellWidth) + this.props.playerX, Math.floor((e.offsetY - centerY) / this.props.cellHeight) + this.props.playerY)
     }
     render() {
         return (
