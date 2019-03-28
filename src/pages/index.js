@@ -88,7 +88,7 @@ class WalletLogout extends React.Component {
 class MiniGameView extends React.Component {
     render() {
         return (
-            <iframe src={this.props.url} />
+            <iframe src={this.props.url} width={640} height={480}/>
         )
     }
 }
@@ -125,9 +125,10 @@ class Game extends React.Component {
         ));
         this.contract = await near.loadContract(contractId, {
             viewMethods: ["lookAround", "getPlayer"],
-            changeMethods: ["move"],
+            changeMethods: ["move", "deploy"],
             sender: accountId,
         });
+        window.contract = this.contract
         await this.fetchCells(accountId)
         if (accountId) {
             let player = await this.contract.getPlayer({ accountId })
