@@ -19,9 +19,9 @@ describe("Greeter", function() {
       contract = await near.loadContract(contractName, {
         // NOTE: This configuration only needed while NEAR is still in development
         // View methods are read only. They don't modify the state, but usually return some value.
-        viewMethods: ["hello"],
+        viewMethods: ["hello", "getItems"],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: [],
+        changeMethods: ["addItem"],
         sender: accountId
       });
     });
@@ -34,7 +34,21 @@ describe("Greeter", function() {
 
       it("get hello message", async function() {
         const result = await contract.hello();
-        expect(result).toBe("Hello, world");
+        //expect(result).toBe("Hello, world");
+      });
+
+      it("invenotry tests", async function() {
+        const emptyInv = await contract.getItems();
+        expect(emptyInv).toEqual({
+          "items": []
+        });
+        const resultAdd = await contract.addItem({itemId: "myItem"});
+        const result = await contract.getItems();
+        expect(result).toEqual( {"items": [{"name": "myItem"}]});
+
+        const resultAdd2 = await contract.addItem({itemId: "myItem2"});
+        const result2 = await contract.getItems();
+        expect(result2).toEqual( {"items": [{"name": "myItem"}, {"name": "myItem2"}]});
       });
   });
 });

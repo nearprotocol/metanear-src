@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node_modules/near-shell/near build",
+    "pretest": "npm run-script build",
     "test": "jest test --env=./local_test_environment.js"
   },
   "devDependencies": {
