@@ -43,7 +43,7 @@ export class Player {
 
   static withAccountId(accountId: string): Player {
     return {
-      accountId: accountId,
+      accountId,
       location: Location.create(),
       inventory: Inventory.create(),
     };

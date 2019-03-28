@@ -24,7 +24,6 @@ export function getMyItems(): Inventory {
 
 export function addItem(accountId: string, itemId: string): void {
   let player = getPlayer(accountId);
-  near.log(player.toString());
   let cell = getCell(<Location>(player.location));
   assert(cell.contractId == context.sender, "The player is not at your cell");
   let itemToAdd = new InventoryItem();
@@ -38,7 +37,6 @@ export function addItem(accountId: string, itemId: string): void {
 let players = collections.map<string, Player>("players");
 
 function savePlayer(player: Player): void {
-  near.log(player.toString());
   players.set(player.accountId, player);
 }
 

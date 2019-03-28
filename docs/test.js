@@ -47,7 +47,7 @@ describe("Greeter", function() {
         const result = await contract.getItems({accountId});
         expect(result).toEqual( {"items": [{"name": "myItem"}]});
 
-        const resultAdd2 = await contract.addItem({itemId: "myItem2"});
+        const resultAdd2 = await contract.addItem({accountId, itemId: "myItem2"});
         const result2 = await contract.getItems({accountId});
         expect(result2).toEqual( {"items": [{"name": "myItem"}, {"name": "myItem2"}]});
       });
