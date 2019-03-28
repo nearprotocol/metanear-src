@@ -29,6 +29,9 @@ class Grid extends React.Component {
                 this.props.cellWidth,
                 this.props.cellHeight)
         }
+        ctx.beginPath()
+        ctx.arc((this.props.playerX + 0.5) * this.props.cellWidth, (this.props.playerY + 0.5) * this.props.cellHeight, this.props.cellWidth / 2 - 3, 0, 2 * Math.PI)
+        ctx.stroke()
         document.addEventListener('mousemove', this.onMouseMove, false)
     }
     componentWillUnmount() {
@@ -49,23 +52,28 @@ class Game extends React.Component {
         super(props)
         this.state = { 
             cells: [{ location: { x: 1, y: 1 }, viewIndex: 1, contractId: "ads", webUrl: "123", owner: "xyz" }], 
-            highlighCell: {}
+            highlighCell: {},
+            player: {location: {x: 0, y: 0}}
         }
     }
     nearConnect = async () => {
         const walletAccount = new nearlib.WalletAccount(contractName, "https://wallet.nearprotocol.com/");
         const accountId = walletAccount.getAccountId();
+        console.log(accountId)
         const near = new nearlib.Near(new nearlib.NearClient(
             walletAccount,
             new nearlib.LocalNodeConnection("https://studio.nearprotocol.com/devnet"),
         ));
         this.contract = await near.loadContract(contractName, {
-            viewMethods: ["getCellView"],
+            viewMethods: ["lookAround", "getPlayer"],
             changeMethods: [],
             sender: accountId,
         });
-        let cells = await this.contract.getCellView()
-        this.setState({cells})
+        let view = await this.contract.lookAround()
+        console.log(view)
+        let player = await this.contract.getPlayer({accountId: this.props.accountId})
+        console.log(player)
+        this.setState({cells: view.cells || [], player})
     }
     componentDidMount() {
         this.nearConnect();
@@ -83,7 +91,7 @@ class Game extends React.Component {
     render() {
         return (
             <div>
-                <Grid width={640} height={425} cellWidth={20} cellHeight={20} cells={this.state.cells} onHighlight={this.onHighlight} />
+                <Grid width={640} height={425} cellWidth={20} cellHeight={20} cells={this.state.cells} onHighlight={this.onHighlight} playerX={this.state.player.location.x} playerY={this.state.player.location.y} />
                 <div>{JSON.stringify(this.state.highlighCell)}</div>
             </div>
         )
@@ -97,7 +105,7 @@ export default function Index() {
                 <script src="https://cdn.jsdelivr.net/npm/nearlib@0.4.2/dist/nearlib.js"></script>
             </Head>
             <div>
-                <Game />
+                <Game accountId="illia.near" />
             </div>
         </div>
     )
