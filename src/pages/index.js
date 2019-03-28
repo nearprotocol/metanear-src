@@ -178,12 +178,7 @@ class Game extends React.Component {
         }
         let cell = null;
         if (this.state.player) {
-            for (let i = 0; i < this.state.cells.length; ++i) {
-                if (this.state.cells[i].location.x == this.state.player.location.x && this.state.cells[i].location.y == this.state.player.location.y) {
-                    cell = this.state.cells[i]
-                    break
-                }
-            }
+            cell = this.state.cells[locationKey(this.state.player.location)];
             console.log("I'm in " + JSON.stringify(this.state.player) + JSON.stringify(cell))
         }
         return (
