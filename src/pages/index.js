@@ -4,12 +4,13 @@ import Head from 'next/head'
 // import { Near } from 'nearlib'
 
 const contractId = "metanear";
+const localStorageKeyCellPrefix = "cell:";
 const appTitle = "Meta NEAR"
 const baseUrl = "http://localhost:3000"
 
 const locationKey = (location) => JSON.stringify(location)
 const cellKey = (cell) => locationKey(cell.location)
-const grassColor = (a) => `rgb(${Math.round(124*a)}, ${Math.round(252*a)}, 0)`;
+const grassColor = (a) => `rgb(${Math.round(86*a)}, ${Math.round(125*a)}, ${Math.round(70*a)})`;
 
 class Grid extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -39,10 +40,10 @@ class Grid extends React.Component {
             }
 
             ctx.fillStyle = [
+                grassColor(0.5),
+                grassColor(0.45),
                 grassColor(0.4),
-                grassColor(0.3),
-                grassColor(0.2),
-                grassColor(0.1),
+                grassColor(0.35),
                 "#883333"][cell.viewIndex]
             ctx.fillRect(
                 centerX + (cell.location.x - this.props.playerX) * this.props.cellWidth,
@@ -131,8 +132,9 @@ class Game extends React.Component {
         let cells = {}
         if (view.cells) {
             view.cells.forEach((cell) => {
-                cells[cellKey(cell)] = cell;
-            });
+                cells[cellKey(cell)] = cell
+                localStorage.setItem(localStorageKeyCellPrefix + cellKey(cell), JSON.stringify(cell))
+            })
         }
         this.setState({ cells, allCells: Object.assign(this.state.allCells, cells) })
     }
@@ -158,6 +160,20 @@ class Game extends React.Component {
         }
     }
     componentDidMount() {
+        let allCells = {}
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith(localStorageKeyCellPrefix)) {
+                try {
+                    let cell = JSON.parse(window.localStorage.getItem(key))
+                    if (localStorageKeyCellPrefix + cellKey(cell) == key) {
+                        allCells[cellKey(cell)] = cell
+                    }
+                } catch (err) {
+                    // whatever
+                }
+            }
+        })
+        this.setState({ allCells })
         this.nearConnect();
     }
     onHighlight = (x, y) => {
