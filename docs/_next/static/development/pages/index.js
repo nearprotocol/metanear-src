@@ -10738,12 +10738,12 @@ function (_React$Component) {
       }
 
       _babel_runtime_corejs2_core_js_object_values__WEBPACK_IMPORTED_MODULE_3___default()(this.props.allCells).forEach(function (cell) {
-        ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA"][cell.viewIndex];
+        ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA", "#333333"][cell.viewIndex];
         ctx.fillRect(cell.location.x * _this2.props.cellWidth, cell.location.y * _this2.props.cellHeight, _this2.props.cellWidth, _this2.props.cellHeight);
       });
 
       _babel_runtime_corejs2_core_js_object_values__WEBPACK_IMPORTED_MODULE_3___default()(this.props.cells).forEach(function (cell) {
-        ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF"][cell.viewIndex];
+        ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF", "#666666"][cell.viewIndex];
         ctx.fillRect(cell.location.x * _this2.props.cellWidth, cell.location.y * _this2.props.cellHeight, _this2.props.cellWidth, _this2.props.cellHeight);
       });
 
@@ -10843,7 +10843,9 @@ function (_React$Component4) {
     key: "render",
     value: function render() {
       return react__WEBPACK_IMPORTED_MODULE_12___default.a.createElement("iframe", {
-        src: this.props.url
+        src: this.props.url,
+        width: 640,
+        height: 480
       });
     }
   }]);
@@ -10863,74 +10865,103 @@ function (_React$Component5) {
 
     _this3 = Object(_babel_runtime_corejs2_helpers_esm_possibleConstructorReturn__WEBPACK_IMPORTED_MODULE_6__["default"])(this, Object(_babel_runtime_corejs2_helpers_esm_getPrototypeOf__WEBPACK_IMPORTED_MODULE_7__["default"])(Game).call(this, props));
 
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_10__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_8__["default"])(_this3), "fetchCells",
+    /*#__PURE__*/
+    function () {
+      var _ref = Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
+      /*#__PURE__*/
+      _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee(accountId) {
+        var view, cells;
+        return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return _this3.contract.lookAround({
+                  accountId: accountId
+                });
+
+              case 2:
+                view = _context.sent;
+                console.log(view);
+                cells = {};
+
+                if (view.cells) {
+                  view.cells.forEach(function (cell) {
+                    cells[cellKey(cell)] = cell;
+                  });
+                }
+
+                _this3.setState({
+                  cells: cells,
+                  allCells: _babel_runtime_corejs2_core_js_object_assign__WEBPACK_IMPORTED_MODULE_1___default()(_this3.state.allCells, cells)
+                });
+
+              case 7:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      return function (_x) {
+        return _ref.apply(this, arguments);
+      };
+    }());
+
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_10__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_8__["default"])(_this3), "nearConnect",
     /*#__PURE__*/
     Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
     /*#__PURE__*/
-    _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee() {
-      var accountId, near, view, cells, player;
-      return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee$(_context) {
+    _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee2() {
+      var accountId, near, player;
+      return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee2$(_context2) {
         while (1) {
-          switch (_context.prev = _context.next) {
+          switch (_context2.prev = _context2.next) {
             case 0:
               _this3.walletAccount = new nearlib.WalletAccount(contractId, "https://wallet.nearprotocol.com/");
               accountId = _this3.walletAccount.getAccountId();
               console.log(accountId);
               near = new nearlib.Near(new nearlib.NearClient(_this3.walletAccount, new nearlib.LocalNodeConnection("https://studio.nearprotocol.com/devnet")));
-              _context.next = 6;
+              _context2.next = 6;
               return near.loadContract(contractId, {
                 viewMethods: ["lookAround", "getPlayer"],
-                changeMethods: ["move"],
+                changeMethods: ["move", "deploy"],
                 sender: accountId
               });
 
             case 6:
-              _this3.contract = _context.sent;
-              _context.next = 9;
-              return _this3.contract.lookAround({
-                accountId: accountId
-              });
+              _this3.contract = _context2.sent;
+              window.contract = _this3.contract;
+              _context2.next = 10;
+              return _this3.fetchCells(accountId);
 
-            case 9:
-              view = _context.sent;
-              console.log(view);
-              cells = {};
-
-              if (view.cells) {
-                view.cells.forEach(function (cell) {
-                  cells[cellKey(cell)] = cell;
-                });
-              }
-
-              _this3.setState({
-                cells: cells,
-                allCells: _babel_runtime_corejs2_core_js_object_assign__WEBPACK_IMPORTED_MODULE_1___default()(_this3.state.allCells, cells)
-              });
-
+            case 10:
               if (!accountId) {
-                _context.next = 20;
+                _context2.next = 16;
                 break;
               }
 
-              _context.next = 17;
+              _context2.next = 13;
               return _this3.contract.getPlayer({
                 accountId: accountId
               });
 
-            case 17:
-              player = _context.sent;
+            case 13:
+              player = _context2.sent;
               console.log(player);
 
               _this3.setState({
                 player: player
               });
 
-            case 20:
+            case 16:
             case "end":
-              return _context.stop();
+              return _context2.stop();
           }
         }
-      }, _callee);
+      }, _callee2);
     })));
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_10__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_8__["default"])(_this3), "onHighlight", function (x, y) {
@@ -10971,13 +11002,12 @@ function (_React$Component5) {
         }).then(
         /*#__PURE__*/
         function () {
-          var _ref2 = Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
+          var _ref3 = Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
           /*#__PURE__*/
-          _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee2(player) {
-            var view;
-            return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee2$(_context2) {
+          _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee3(player) {
+            return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee3$(_context3) {
               while (1) {
-                switch (_context2.prev = _context2.next) {
+                switch (_context3.prev = _context3.next) {
                   case 0:
                     console.log(player);
 
@@ -10985,29 +11015,19 @@ function (_React$Component5) {
                       player: player
                     });
 
-                    _context2.next = 4;
-                    return _this3.contract.lookAround({
-                      accountId: accountId
-                    });
+                    _context3.next = 4;
+                    return _this3.fetchCells(accountId);
 
                   case 4:
-                    view = _context2.sent;
-                    console.log(view);
-
-                    _this3.setState({
-                      cells: view.cells || []
-                    });
-
-                  case 7:
                   case "end":
-                    return _context2.stop();
+                    return _context3.stop();
                 }
               }
-            }, _callee2);
+            }, _callee3);
           }));
 
-          return function (_x) {
-            return _ref2.apply(this, arguments);
+          return function (_x2) {
+            return _ref3.apply(this, arguments);
           };
         }());
       });
@@ -11047,14 +11067,7 @@ function (_React$Component5) {
       var cell = null;
 
       if (this.state.player) {
-        for (var i = 0; i < this.state.cells.length; ++i) {
-          if (this.state.cells[i].location.x == this.state.player.location.x && this.state.cells[i].location.y == this.state.player.location.y) {
-            cell = this.state.cells[i];
-            break;
-          }
-        }
-
-        console.log("I'm in " + _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_11___default()(this.state.player) + _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_11___default()(cell));
+        cell = this.state.cells[locationKey(this.state.player.location)];
       }
 
       return react__WEBPACK_IMPORTED_MODULE_12___default.a.createElement("div", null, control, react__WEBPACK_IMPORTED_MODULE_12___default.a.createElement(Grid, {
