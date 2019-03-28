@@ -12,7 +12,7 @@
     "assemblyscript-json": "github:nearprotocol/assemblyscript-json",
     "jest": "^22.4.4",
     "jest-environment-node": "^24.5.0",
-    "near-runtime-ts": "github:nearprotocol/near-runtime-ts#storage-contrainers",
+    "near-runtime-ts": "github:nearprotocol/near-runtime-ts#storage-containers",
     "near-shell": "github:nearprotocol/near-shell"
   },
   "wasmStudio": {
