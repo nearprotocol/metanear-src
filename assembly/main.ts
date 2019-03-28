@@ -40,6 +40,7 @@ export function addItem(accountId: string, itemId: string): void {
   let inventory = getItems(accountId);
   let itemToAdd = new InventoryItem();
   itemToAdd.name = itemId;
+  itemToAdd.source = context.sender;
   inventory.items.push(itemToAdd);
   saveInventory(inventory);
 }

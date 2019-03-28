@@ -3,6 +3,7 @@ export class CellView {
 }
 
 export class InventoryItem {
+  source: string;
   name: string;
 }
 

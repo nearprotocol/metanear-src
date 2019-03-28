@@ -44,13 +44,15 @@ describe("Greeter", function() {
           accountId,
           "items": []
         });
+        const expectedItem1 = {"name": "myItem", "source": accountId};
+        const expectedItem2 = {"name": "myItem2", "source": accountId};
         const resultAdd = await contract.addItem({accountId, itemId: "myItem"});
         const result = await contract.getItems({accountId});
-        expect(result).toEqual( {accountId, "items": [{"name": "myItem"}]});
+        expect(result).toEqual( {accountId, "items": [expectedItem1]});
 
         const resultAdd2 = await contract.addItem({accountId, itemId: "myItem2"});
         const result2 = await contract.getItems({accountId});
-        expect(result2).toEqual( {accountId, "items": [{"name": "myItem"}, {"name": "myItem2"}]});
+        expect(result2).toEqual( {accountId, "items": [expectedItem1, expectedItem2]});
       });
   });
 });
