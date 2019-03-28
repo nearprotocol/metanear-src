@@ -47,23 +47,36 @@ export function getPlayer(accountId: string): Player {
   }
 }
 
+function myPlayer(): Player {
+  return getPlayer(context.sender);
+}
+
+export function move(dx: i32, dy: i32): void {
+  assert(abs(dx) + abs(dy) == 1, "Can move only to the neighbor cells");
+  let p = myPlayer();
+  p.location.x += dx;
+  p.location.y += dy;
+  savePlayer(p);
+}
+
 // Cells
 
 let cellViews = collections.vector<CellView>("cellViews");
 
 function saveCell(cell: Cell): void {
-  cells.set(<Location>(cell.location), cell);
+  cells.set(cell.location.key(), cell);
 }
 
 export function getCellView(index: i32): CellView {
   return cellViews[index];
 }
 
-let cells = collections.map<Location, Cell>("cells");
+let cells = collections.map<i64, Cell>("cells");
 
 function getCell(location: Location): Cell {
-  if (cells.containsKey(location)) {
-    return cells.get(location);
+  let key = location.key();
+  if (cells.containsKey(key)) {
+    return cells.get(key);
   } else {
     let cell = new Cell();
     cell.location = location;
@@ -91,6 +104,7 @@ export function lookAround(accountId: string): View {
 // Init function
 
 export function init(isTest: bool): void {
+  assert(context.sender == context.contractName, "Can only be called by the contract owner");
   if (storage.get<bool>("initiated", false)) {
     return;
   }

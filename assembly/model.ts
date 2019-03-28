@@ -20,6 +20,13 @@ export class Location {
   x: i32;
   y: i32;
   
+  key(): i64 {
+    let res: i64 = this.y;
+    res *= 1000000000;
+    res += this.x;
+    return res;
+  }
+
   static create(x: i32 = 0, y: i32 = 0): Location {
     return {x, y};
   }
