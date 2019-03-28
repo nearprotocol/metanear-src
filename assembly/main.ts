@@ -93,7 +93,7 @@ function getCell(location: Location): Cell {
   } else {
     let cell = new Cell();
     cell.location = location;
-    cell.viewIndex = abs(location.x + location.y) % 4;
+    cell.viewIndex = near.hash32(location) % 4;
     return cell;
   }
 }
