@@ -46,7 +46,7 @@ export function addItem(accountId: string, itemId: string): void {
 
 // Player APIs
 
-let players = collections.map<string, Player>("players");
+let players = collections.map<string, Player>("players2");
 
 function savePlayer(player: Player): void {
   players.set(player.accountId, player);

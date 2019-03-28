@@ -7,6 +7,9 @@ const contractId = "metanear";
 const appTitle = "Meta NEAR"
 const baseUrl = "http://localhost:3000"
 
+const locationKey = (location) => JSON.stringify(location)
+const cellKey = (cell) => locationKey(cell.location)
+
 class Grid extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
         const canvas = this.refs.canvas
@@ -25,13 +28,22 @@ class Grid extends React.Component {
             ctx.lineTo(this.props.width, i * this.props.cellHeight)
             ctx.stroke()
         }
-        for (let i = 0; i < this.props.cells.length; ++i) {
+        Object.values(this.props.allCells).forEach((cell) => {
+            ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA"][cell.viewIndex]
             ctx.fillRect(
-                (this.props.cells[i].location.x) * this.props.cellWidth,
-                (this.props.cells[i].location.y) * this.props.cellHeight,
+                (cell.location.x) * this.props.cellWidth,
+                (cell.location.y) * this.props.cellHeight,
                 this.props.cellWidth,
                 this.props.cellHeight)
-        }
+        })
+        Object.values(this.props.cells).forEach((cell) => {
+            ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF"][cell.viewIndex]
+            ctx.fillRect(
+                (cell.location.x) * this.props.cellWidth,
+                (cell.location.y) * this.props.cellHeight,
+                this.props.cellWidth,
+                this.props.cellHeight)
+        })
         ctx.beginPath()
         ctx.arc((this.props.playerX + 0.5) * this.props.cellWidth, (this.props.playerY + 0.5) * this.props.cellHeight, this.props.cellWidth / 2 - 3, 0, 2 * Math.PI)
         ctx.stroke()
@@ -85,7 +97,8 @@ class Game extends React.Component {
     constructor(props) {
         super(props)
         this.state = { 
-            cells: [], 
+            cells: {},
+            allCells: {},
             highlighCell: {},
             player: null
         }
@@ -106,7 +119,13 @@ class Game extends React.Component {
         });
         let view = await this.contract.lookAround({ accountId })
         console.log(view)
-        this.setState({ cells: view.cells || [] })
+        let cells = {}
+        if (view.cells) {
+            view.cells.forEach((cell) => {
+                cells[cellKey(cell)] = cell;
+            });
+        }
+        this.setState({ cells, allCells: Object.assign(this.state.allCells, cells) })
         if (accountId) {
             let player = await this.contract.getPlayer({ accountId })
             console.log(player)
@@ -117,13 +136,7 @@ class Game extends React.Component {
         this.nearConnect();
     }
     onHighlight = (x, y) => {
-        let highlighCell = {}
-        for (let i = 0; i < this.state.cells.length; ++i) {
-            if (this.state.cells[i].location.x == x && this.state.cells[i].location.y == y) {
-                highlighCell = this.state.cells[i]
-                break
-            }
-        }
+        let highlighCell = this.state.allCells[locationKey({x, y})] || {}
         this.setState({highlighCell})
     }
     login = () => {
@@ -177,7 +190,7 @@ class Game extends React.Component {
             <div>
                 {control}
                 <Grid width={640} height={425} cellWidth={20} cellHeight={20} 
-                cells={this.state.cells} onHighlight={this.onHighlight} 
+                cells={this.state.cells} allCells={this.state.allCells} onHighlight={this.onHighlight}
                     playerX={this.state.player && this.state.player.location.x} 
                     playerY={this.state.player && this.state.player.location.y} 
                 onClick={this.movePlayer} />
