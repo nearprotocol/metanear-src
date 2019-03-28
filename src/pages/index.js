@@ -9,6 +9,7 @@ const baseUrl = "http://localhost:3000"
 
 const locationKey = (location) => JSON.stringify(location)
 const cellKey = (cell) => locationKey(cell.location)
+const grassColor = (a) => `rgb(${Math.round(124*a)}, ${Math.round(252*a)}, 0)`;
 
 class Grid extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -33,7 +34,16 @@ class Grid extends React.Component {
             ctx.stroke()
         }
         Object.values(this.props.allCells).forEach((cell) => {
-            ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA", "#333333"][cell.viewIndex]
+            if (cellKey(cell) in this.props.cells) {
+                return;
+            }
+
+            ctx.fillStyle = [
+                grassColor(0.4),
+                grassColor(0.3),
+                grassColor(0.2),
+                grassColor(0.1),
+                "#883333"][cell.viewIndex]
             ctx.fillRect(
                 centerX + (cell.location.x - this.props.playerX) * this.props.cellWidth,
                 centerY + (cell.location.y - this.props.playerY) * this.props.cellHeight,
@@ -41,7 +51,12 @@ class Grid extends React.Component {
                 this.props.cellHeight)
         })
         Object.values(this.props.cells).forEach((cell) => {
-            ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF", "#666666"][cell.viewIndex]
+            ctx.fillStyle = [
+                grassColor(1.0),
+                grassColor(0.9),
+                grassColor(0.8),
+                grassColor(0.7),
+                "#FF6666"][cell.viewIndex]
             ctx.fillRect(
                 centerX + (cell.location.x - this.props.playerX) * this.props.cellWidth,
                 centerY + (cell.location.y - this.props.playerY) * this.props.cellHeight,
