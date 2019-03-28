@@ -98,6 +98,17 @@ function getCell(location: Location): Cell {
   }
 }
 
+export function deploy(contractId: string, webUrl: string): void {
+  let p = myPlayer();
+  let cell = getCell(<Location>(p.location));
+  cell.contractId = contractId;
+  cell.webUrl = webUrl;
+  cell.viewIndex = 4;
+  saveCell(cell);
+}
+
+// View
+
 export function lookAround(accountId: string): View {
   let p = getPlayer(accountId);
   let view = new View();

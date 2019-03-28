@@ -29,7 +29,7 @@ class Grid extends React.Component {
             ctx.stroke()
         }
         Object.values(this.props.allCells).forEach((cell) => {
-            ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA"][cell.viewIndex]
+            ctx.fillStyle = ["#AA6666", "#AAAA66", "#AA66AA", "#6666AA", "#333333"][cell.viewIndex]
             ctx.fillRect(
                 (cell.location.x) * this.props.cellWidth,
                 (cell.location.y) * this.props.cellHeight,
@@ -37,7 +37,7 @@ class Grid extends React.Component {
                 this.props.cellHeight)
         })
         Object.values(this.props.cells).forEach((cell) => {
-            ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF"][cell.viewIndex]
+            ctx.fillStyle = ["#FF9999", "#FFFF99", "#FF99FF", "#9999FF", "#666666"][cell.viewIndex]
             ctx.fillRect(
                 (cell.location.x) * this.props.cellWidth,
                 (cell.location.y) * this.props.cellHeight,
