@@ -21,7 +21,7 @@ describe("Greeter", function() {
         // View methods are read only. They don't modify the state, but usually return some value.
         viewMethods: ["hello", "getItems"],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: ["addItem"],
+        changeMethods: ["addItem", "init"],
         sender: accountId
       });
     });
@@ -38,16 +38,17 @@ describe("Greeter", function() {
       });
 
       it("invenotry tests", async function() {
-        const emptyInv = await contract.getItems();
+        await contract.init({isTest: true});
+        const emptyInv = await contract.getItems({accountId});
         expect(emptyInv).toEqual({
           "items": []
         });
-        const resultAdd = await contract.addItem({itemId: "myItem"});
-        const result = await contract.getItems();
+        const resultAdd = await contract.addItem({accountId, itemId: "myItem"});
+        const result = await contract.getItems({accountId});
         expect(result).toEqual( {"items": [{"name": "myItem"}]});
 
         const resultAdd2 = await contract.addItem({itemId: "myItem2"});
-        const result2 = await contract.getItems();
+        const result2 = await contract.getItems({accountId});
         expect(result2).toEqual( {"items": [{"name": "myItem"}, {"name": "myItem2"}]});
       });
   });

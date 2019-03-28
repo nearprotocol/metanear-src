@@ -2,6 +2,32 @@ export class CellView {
   imageUrl: string;
 }
 
+export class InventoryItem {
+  name: string;
+}
+
+export class Inventory {
+  items: InventoryItem[];
+
+  static create(): Inventory {
+    return {
+      items: [],
+    };
+  }
+}
+
+export class Location {
+  x: i32;
+  y: i32;
+  
+  static create(): Location {
+    return {
+      x: 0,
+      y: 0,
+    }
+  }
+}
+
 export class Cell {
   location: Location;
   viewIndex: i32;
@@ -10,34 +36,21 @@ export class Cell {
   owner: string;
 }
 
-export class InventoryItem {
-  name: string;
-}
-
-export class Inventory {
-  items: Array<InventoryItem>;
-}
-
-export class Location {
-  x: i32;
-  y: i32;
-  
-  constructor() {
-    this.x = 0;
-    this.y = 0;
-  }
-}
-
 export class Player {
   accountId: string;
   location: Location;
+  inventory: Inventory;
 
-  constructor(accountId: string = null) {
-    this.accountId = accountId;
-    this.location = new Location();
+  static withAccountId(accountId: string): Player {
+    return {
+      accountId: accountId,
+      location: Location.create(),
+      inventory: Inventory.create(),
+    };
   }
 }
 
 export class View {
   cells: Cell[];
 }
+

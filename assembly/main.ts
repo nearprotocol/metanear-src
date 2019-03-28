@@ -1,7 +1,9 @@
+import "allocator/arena";
+export { memory };
+
 import { context, storage, near, collections } from "./near";
 
 import { Cell, Inventory, InventoryItem, Location, Player, View, CellView } from "./model.near";
-const ITEM_KEY_PREFIX : string = "metanear_inv_";
 
 // --- contract code goes below
 
@@ -10,61 +12,56 @@ export function hello(): string {
 }
 
 
-export function getItems(): Inventory {
-  let encodedInventory = storage.getBytes(ITEM_KEY_PREFIX + context.sender);
-  //  storage.getBytes(ITEM_KEY_PREFIX + near.str(1)));
-  if (encodedInventory) {
-    let inventory = Inventory.decode(encodedInventory);
-    return inventory;
-  }
-  let blankInventory = new Inventory();
-  blankInventory.items = [];
-  return blankInventory;
+// Items
+
+export function getItems(accountId: string): Inventory {
+  return <Inventory>(getPlayer(accountId).inventory);
 }
 
-export function addItem(itemId: string): void {
-  // check if your inventory is initialized
-  let encodedInventory = storage.getBytes(ITEM_KEY_PREFIX + context.sender);
+export function getMyItems(): Inventory {
+  return <Inventory>(myPlayer().inventory);
+}
+
+export function addItem(accountId: string, itemId: string): void {
+  let player = getPlayer(accountId);
+  near.log(player.toString());
+  let cell = getCell(<Location>(player.location));
+  assert(cell.contractId == context.sender, "The player is not at your cell");
   let itemToAdd = new InventoryItem();
   itemToAdd.name = itemId;
-  if (!encodedInventory) {
-    let inventory = new Inventory();
-    inventory.items = new Array();
-    inventory.items.push(itemToAdd);
-    storage.setBytes(
-      ITEM_KEY_PREFIX + context.sender,
-      inventory.encode()
-    );
-  } else {
-    let inventory = Inventory.decode(encodedInventory);
-    inventory.items.push(itemToAdd);
-    storage.setBytes(
-      ITEM_KEY_PREFIX + context.sender,
-      inventory.encode()
-    );
-  }
+  player.inventory.items.push(itemToAdd);
+  savePlayer(player);
 }
 
 // Player APIs
 
 let players = collections.map<string, Player>("players");
 
-export function otherPlayer(accountId: string): Player {
+function savePlayer(player: Player): void {
+  near.log(player.toString());
+  players.set(player.accountId, player);
+}
+
+export function getPlayer(accountId: string): Player {
   if (players.containsKey(accountId)) {
     return players.get(accountId);
   } else {
-    return new Player(accountId);
+    return <Player>(Player.withAccountId(accountId));
   }
 }
 
-export function player(): Player {
-  return otherPlayer(context.sender);
+export function myPlayer(): Player {
+  return getPlayer(context.sender);
 }
 
 
 // Cells
 
 let cellViews = collections.vector<CellView>("cellViews");
+
+function saveCell(cell: Cell): void {
+  cells.set(<Location>(cell.location), cell);
+}
 
 export function getCellView(index: i32): CellView {
   return cellViews[index];
@@ -79,13 +76,13 @@ function getCell(location: Location): Cell {
     let cell = new Cell();
     cell.location = location;
     cell.viewIndex = 0;
-    cells.set(location, cell);
+    saveCell(cell);
     return cell;
   }
 }
 
 export function lookAround(): View {
-  let p = player();
+  let p = myPlayer();
   let view = new View();
   return view;
 }
@@ -93,8 +90,15 @@ export function lookAround(): View {
 
 // Init function
 
-export function init(): void {
+export function init(isTest: bool): void {
   if (storage.get<bool>("initiated", false)) {
+    return;
+  }
+
+  if (isTest) {
+    let cell = getCell(new Location());
+    cell.contractId = context.sender;
+    saveCell(cell);    
     return;
   }
 
