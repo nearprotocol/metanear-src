@@ -104,6 +104,17 @@ class Game extends React.Component {
         }
         this.walletAccount = null
     }
+    fetchCells = async(accountId) => {
+        let view = await this.contract.lookAround({ accountId })
+        console.log(view)
+        let cells = {}
+        if (view.cells) {
+            view.cells.forEach((cell) => {
+                cells[cellKey(cell)] = cell;
+            });
+        }
+        this.setState({ cells, allCells: Object.assign(this.state.allCells, cells) })
+    }
     nearConnect = async () => {
         this.walletAccount = new nearlib.WalletAccount(contractId, "https://wallet.nearprotocol.com/");
         const accountId = this.walletAccount.getAccountId();
@@ -117,15 +128,7 @@ class Game extends React.Component {
             changeMethods: ["move"],
             sender: accountId,
         });
-        let view = await this.contract.lookAround({ accountId })
-        console.log(view)
-        let cells = {}
-        if (view.cells) {
-            view.cells.forEach((cell) => {
-                cells[cellKey(cell)] = cell;
-            });
-        }
-        this.setState({ cells, allCells: Object.assign(this.state.allCells, cells) })
+        await this.fetchCells(accountId)
         if (accountId) {
             let player = await this.contract.getPlayer({ accountId })
             console.log(player)
@@ -163,9 +166,7 @@ class Game extends React.Component {
             this.contract.getPlayer({ accountId }).then(async (player) => {
                 console.log(player)
                 this.setState({ player })
-                let view = await this.contract.lookAround({ accountId })
-                console.log(view)
-                this.setState({ cells: view.cells || [] })
+                await this.fetchCells(accountId)
             })
         })
     }
@@ -179,7 +180,6 @@ class Game extends React.Component {
         let cell = null;
         if (this.state.player) {
             cell = this.state.cells[locationKey(this.state.player.location)];
-            console.log("I'm in " + JSON.stringify(this.state.player) + JSON.stringify(cell))
         }
         return (
             <div>
