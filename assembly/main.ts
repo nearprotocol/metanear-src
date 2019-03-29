@@ -7,6 +7,7 @@ import { Cell, Inventory, InventoryItem, Location, Player, View, CellView } from
 
 const HOW_FAR_YOU_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
+const MAX_MOVE_DISTANCE: i32 = 3;
 
 // --- contract code goes below
 
@@ -66,7 +67,13 @@ function myPlayer(): Player {
 }
 
 export function move(dx: i32, dy: i32): void {
-  assert(abs(dx) + abs(dy) == 1, "Can move only to the neighbor cells");
+  assert(
+      dx >= -MAX_MOVE_DISTANCE &&
+      dx <= MAX_MOVE_DISTANCE &&
+      dy >= -MAX_MOVE_DISTANCE &&
+      dy <= MAX_MOVE_DISTANCE &&
+      dx * dx + dx * dy <= MAX_MOVE_DISTANCE * MAX_MOVE_DISTANCE,
+    "Can move so far");
   let p = myPlayer();
   p.location.x += dx;
   p.location.y += dy;
