@@ -122,6 +122,7 @@ class Game extends React.Component {
             cells: {},
             allCells: {},
             highlighCell: {},
+            canMoveThere: false,
             player: null
         }
         this.walletAccount = null
@@ -178,7 +179,7 @@ class Game extends React.Component {
     }
     onHighlight = (x, y) => {
         let highlighCell = this.state.allCells[locationKey({x, y})] || {}
-        this.setState({highlighCell})
+        this.setState({highlighCell, canMoveThere: this.canMove(x, y)})
     }
     login = () => {
         this.walletAccount.requestSignIn(
@@ -189,14 +190,21 @@ class Game extends React.Component {
     logout = () => {
 
     }
-    movePlayer = () => {
-        let dx = 0
-        let dy = 0
-        if (Math.abs(this.state.player.location.x - this.state.highlighCell.location.x) == 1) {
-            dx = this.state.player.location.x > this.state.highlighCell.location.x ? -1 : 1
-        } else if (Math.abs(this.state.player.location.y - this.state.highlighCell.location.y) == 1) {
-            dy = this.state.player.location.y > this.state.highlighCell.location.y ? -1 : 1
+    canMove = (x, y) => {
+        if (!this.state.player) {
+            return false
         }
+        let dx = x - this.state.player.location.x
+        let dy = y - this.state.player.location.y
+        let dist = dx * dx + dy * dy
+        return dist <= 7 * 7
+    }
+    movePlayer = () => {
+        if (!this.state.canMoveThere) {
+            return
+        }
+        let dx = this.state.highlighCell.location.x - this.state.player.location.x
+        let dy = this.state.highlighCell.location.y - this.state.player.location.y
         this.contract.move({dx, dy}).then(() => {
             const accountId = this.walletAccount.getAccountId();
             this.contract.getPlayer({ accountId }).then(async (player) => {

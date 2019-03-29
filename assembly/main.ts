@@ -7,7 +7,7 @@ import { Cell, Inventory, InventoryItem, Location, Player, View, CellView } from
 
 const HOW_FAR_YOU_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
-const MAX_MOVE_DISTANCE: i32 = 3;
+const MAX_MOVE_DISTANCE: i32 = 7;
 
 // --- contract code goes below
 
