@@ -10991,7 +10991,8 @@ function (_React$Component5) {
       })] || {};
 
       _this3.setState({
-        highlighCell: highlighCell
+        highlighCell: highlighCell,
+        canMoveThere: _this3.canMove(x, y)
       });
     });
 
@@ -11001,15 +11002,24 @@ function (_React$Component5) {
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "logout", function () {});
 
-    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "movePlayer", function () {
-      var dx = 0;
-      var dy = 0;
-
-      if (Math.abs(_this3.state.player.location.x - _this3.state.highlighCell.location.x) == 1) {
-        dx = _this3.state.player.location.x > _this3.state.highlighCell.location.x ? -1 : 1;
-      } else if (Math.abs(_this3.state.player.location.y - _this3.state.highlighCell.location.y) == 1) {
-        dy = _this3.state.player.location.y > _this3.state.highlighCell.location.y ? -1 : 1;
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "canMove", function (x, y) {
+      if (!_this3.state.player) {
+        return false;
       }
+
+      var dx = x - _this3.state.player.location.x;
+      var dy = y - _this3.state.player.location.y;
+      var dist = dx * dx + dy * dy;
+      return dist <= 7 * 7;
+    });
+
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "movePlayer", function () {
+      if (!_this3.state.canMoveThere) {
+        return;
+      }
+
+      var dx = _this3.state.highlighCell.location.x - _this3.state.player.location.x;
+      var dy = _this3.state.highlighCell.location.y - _this3.state.player.location.y;
 
       _this3.contract.move({
         dx: dx,
@@ -11057,6 +11067,7 @@ function (_React$Component5) {
       cells: {},
       allCells: {},
       highlighCell: {},
+      canMoveThere: false,
       player: null
     };
     _this3.walletAccount = null;
