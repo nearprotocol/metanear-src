@@ -11,7 +11,6 @@ export class ItemInfo {
   imageUrl: string;
   // Contract ID that owns this item
   owner: string;
-  otherContractsCanAdd: bool;
 }
 
 export class Location {

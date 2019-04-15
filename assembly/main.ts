@@ -32,7 +32,6 @@ function playerItemsMap(accountId: string): collections.Map<i32, u64> {
   return collections.map<i32, u64>("items:" + accountId);
 }
 
-
 function assertPlayerCell(accountId: string): Player {
   let player = getPlayer(accountId);
   let cellId = getCellId(<Location>(player.location));
@@ -45,15 +44,18 @@ export function getItemInfo(itemId: i32): ItemInfo {
   return itemInfos[itemId];
 }
 
+export function createNewItem(itemInfo: ItemInfo): i32 {
+  itemInfo.owner = context.sender;
+  return itemInfos.push(itemInfo);
+}
+
 export function addItem(accountId: string, itemId: i32, quantity: u32): void {
   assert(quantity > 0, "Quantity should be positive");
   // Check item ID
   assert(itemInfos.containsIndex(itemId), "Unknown item type");
   // Verify item can be given by this contract
   let itemInfo = getItemInfo(itemId);
-  if (!itemInfo.otherContractsCanAdd) {
-    assert(context.sender == itemInfo.owner, "This item type can't be given by other contracts");
-  }
+  assert(context.sender == itemInfo.owner, "Item can only be given by " + itemInfo.owner);
   // Check that the given player (accountId) is at the cell with the caller contract.
   assertPlayerCell(accountId);
   // Incrementing number of items
@@ -63,13 +65,9 @@ export function addItem(accountId: string, itemId: i32, quantity: u32): void {
 
 // Player APIs
 
-function savePlayer(player: Player): void {
-  players.set(player.accountId, player);
-}
-
 export function getPlayer(accountId: string): Player {
   let player = players.get(accountId, null);
-  if (player == null)
+  if (player == null) {
     player = {
       accountId,
       location: Location.create(),
@@ -93,7 +91,7 @@ export function move(dx: i32, dy: i32): View {
   let p = myPlayer();
   p.location.x += dx;
   p.location.y += dy;
-  savePlayer(p);
+  players.set(p.accountId, p);
   return lookAround(p.accountId);
 }
 
@@ -101,6 +99,11 @@ export function move(dx: i32, dy: i32): View {
 
 export function getCellInfo(index: i32): CellInfo {
   return cellInfos[index];
+}
+
+export function createNewCell(cellInfo: CellInfo): i32 {
+  cellInfo.owner = context.sender;
+  return cellInfos.push(cellInfo);
 }
 
 function getLockedCellId(location: Location): i32 {
