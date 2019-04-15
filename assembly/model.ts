@@ -1,22 +1,14 @@
-export class CellView {
+export class CellInfo {
+  contractId: string;
+  webUrl: string;
+  owner: string;
   imageUrl: string;
+  otherPlayersCanDeploy: bool;
 }
 
 export class InventoryItem {
   source: string;
   name: string;
-}
-
-export class Inventory {
-  accountId: string;
-  items: InventoryItem[];
-
-  static withAccountId(accountId: string): Inventory {
-    return {
-      accountId,
-      items: [],
-    };
-  }
 }
 
 export class Location {
@@ -35,27 +27,14 @@ export class Location {
   }
 }
 
-export class Cell {
-  location: Location;
-  viewIndex: i32;
-  contractId: string;
-  webUrl: string;
-  owner: string;
-}
-
 export class Player {
   accountId: string;
   location: Location;
-
-  static withAccountId(accountId: string): Player {
-    return {
-      accountId,
-      location: Location.create(),
-    };
-  }
 }
 
 export class View {
-  cells: Cell[];
+  cellIds: i32[];
+  location: Location;
+  cellOwner: string;
 }
 
