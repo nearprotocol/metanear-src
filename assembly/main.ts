@@ -3,7 +3,7 @@ export { memory };
 
 import { context, storage, near, collections } from "./near";
 
-import { InventoryItem, Location, Player, View, CellInfo } from "./model.near";
+import { ItemInfo, Item, Location, Player, View, CellInfo } from "./model.near";
 
 const HOW_FAR_YOU_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
@@ -14,37 +14,52 @@ const CELL_ID_START = 0;
 const CELL_ID_ROAD = 1;
 const CELL_ID_GRASS_OFFSET = 2;
 const NUM_GRASS_CELLS = 4;
+const CELL_ID_N = 6;
 
 // --- contract code goes below
 
 
 let players = collections.map<string, Player>("players");
+
 let cellIds = collections.map<i64, i32>("cellIds");
 let cellInfos = collections.vector<CellInfo>("cellInfos");
 let cellOwners = collections.vector<string>("cellOwners");
 
-// Items
-function playerInventoryMap(accountId: string): Map<string, InventoryItem> {
-  return collections.map<string, InventoryItem>("items:" + accountId);
+let itemInfos = collections.vector<ItemInfo>("itemInfos");
+
+// Returns a Map from an ItemID to the quantity the given player has.
+function playerItemsMap(accountId: string): collections.Map<i32, u64> {
+  return collections.map<i32, u64>("items:" + accountId);
 }
 
-/*
-function assertPlayerCell(accountId: string): void {
+
+function assertPlayerCell(accountId: string): Player {
   let player = getPlayer(accountId);
-  let cell = getCell(<Location>(player.location));
-  assert(cell.contractId == context.sender, "The player " + accountId + " is not at your cell");
+  let cellId = getCellId(<Location>(player.location));
+  let cellInfo = getCellInfo(cellId);
+  assert(cellInfo.contractId == context.sender, "The player " + accountId + " is not at your cell");
+  return player;
 }
 
-export function addItem(accountId: string, itemId: string): void {
-  /*
-  let inventory = getItems(accountId);
-  let itemToAdd = new InventoryItem();
-  itemToAdd.name = itemId;
-  itemToAdd.source = context.sender;
-  inventory.items.push(itemToAdd);
-  saveInventory(inventory);
+export function getItemInfo(itemId: i32): ItemInfo {
+  return itemInfos[itemId];
 }
-*/
+
+export function addItem(accountId: string, itemId: i32, quantity: u32): void {
+  assert(quantity > 0, "Quantity should be positive");
+  // Check item ID
+  assert(itemInfos.containsIndex(itemId), "Unknown item type");
+  // Verify item can be given by this contract
+  let itemInfo = getItemInfo(itemId);
+  if (!itemInfo.otherContractsCanAdd) {
+    assert(context.sender == itemInfo.owner, "This item type can't be given by other contracts");
+  }
+  // Check that the given player (accountId) is at the cell with the caller contract.
+  assertPlayerCell(accountId);
+  // Incrementing number of items
+  let itemsMap = playerItemsMap(accountId);
+  itemsMap.set(itemId, itemsMap.get(itemId, 0) + <u64>quantity);
+}
 
 // Player APIs
 
@@ -53,11 +68,14 @@ function savePlayer(player: Player): void {
 }
 
 export function getPlayer(accountId: string): Player {
-  if (players.containsKey(accountId)) {
-    return players.get(accountId);
-  } else {
-    return <Player>(Player.withAccountId(accountId));
+  let player = players.get(accountId, null);
+  if (player == null)
+    player = {
+      accountId,
+      location: Location.create(),
+    };
   }
+  return player;
 }
 
 function myPlayer(): Player {
@@ -110,15 +128,19 @@ function getCellId(location: Location): i32 {
 }
 
 export function deploy(cellId: i32): void {
+  // Check cellID
   assert(cellInfos.containsIndex(cellId), "Unknown cell type");
-  let cellInfo = cellInfos[cellId];
+  // Verify cellInfo can be deployed by this user
+  let cellInfo = getCellInfo(cellId);
   if (!cellInfo.otherPlayersCanDeploy) {
     assert(context.sender == cellInfo.owner, "This cell type can't be deployed by other players");
   }
+  // Verify the location is not locked by the road
   let p = myPlayer();
   let location = <Location>p.location;
   let lockedCellId = getLockedCellId(location);
   assert(lockedCellId < 0, "Can't deploy on the locked cell (e.g. public roads)");
+  // Verify the location is not owner by someone else
   const locationKey = location.key();
   let cellOwner = cellOwners.get(locationKey);
   assert(cellOwner == null || p.accountId == cellOwner, "This cell is owned by other player");
@@ -198,4 +220,5 @@ export function init(isTest: bool): void {
     owner,
     otherPlayersCanDeploy: true,
   });
+  assert(cellInfos.length == CELL_ID_N, "Incorrect default parameters");
 }

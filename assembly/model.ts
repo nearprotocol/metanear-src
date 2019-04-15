@@ -6,9 +6,12 @@ export class CellInfo {
   otherPlayersCanDeploy: bool;
 }
 
-export class InventoryItem {
-  source: string;
+export class ItemInfo {
   name: string;
+  imageUrl: string;
+  // Contract ID that owns this item
+  owner: string;
+  otherContractsCanAdd: bool;
 }
 
 export class Location {
