@@ -6,6 +6,11 @@ export class CellInfo {
   otherPlayersCanDeploy: bool;
 }
 
+export class Item {
+  itemId: i32;
+  quantity: u64;
+}
+
 export class ItemInfo {
   name: string;
   imageUrl: string;
@@ -40,3 +45,16 @@ export class View {
   cellOwner: string;
 }
 
+export class TakeItemFromPlayerArgs {
+  accountId: string;
+  itemId: i32;
+  quantity: u32;
+  cellId: i32;
+  location: Location;
+}
+
+export class ItemWasTakenArgs {
+  accountId: string;
+  itemId: i32;
+  quantity: u32;
+}

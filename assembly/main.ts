@@ -1,14 +1,13 @@
 import "allocator/arena";
 export { memory };
 
-import { context, storage, near, collections } from "./near";
+import { context, storage, near, collections, ContractPromise } from "./near";
 
-import { ItemInfo, Item, Location, Player, View, CellInfo } from "./model.near";
+import { ItemInfo, Item, Location, Player, View, CellInfo, TakeItemFromPlayerArgs, ItemWasTakenArgs } from "./model.near";
 
 const HOW_FAR_YOU_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
 const MAX_MOVE_DISTANCE: i32 = 7;
-const ROAD_EVERY_N = 9;
 
 const CELL_ID_START = 0;
 const CELL_ID_ROAD = 1;
@@ -28,8 +27,8 @@ let cellOwners = collections.vector<string>("cellOwners");
 let itemInfos = collections.vector<ItemInfo>("itemInfos");
 
 // Returns a Map from an ItemID to the quantity the given player has.
-function playerItemsMap(accountId: string): collections.Map<i32, u64> {
-  return collections.map<i32, u64>("items:" + accountId);
+function playerItemsMap(accountId: string): collections.Map<i32, Item> {
+  return collections.map<i32, Item>("items:" + accountId);
 }
 
 function assertPlayerCell(accountId: string): Player {
@@ -40,6 +39,10 @@ function assertPlayerCell(accountId: string): Player {
   return player;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ITEMS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 export function getItemInfo(itemId: i32): ItemInfo {
   return itemInfos[itemId];
 }
@@ -47,6 +50,94 @@ export function getItemInfo(itemId: i32): ItemInfo {
 export function createNewItem(itemInfo: ItemInfo): i32 {
   itemInfo.owner = context.sender;
   return itemInfos.push(itemInfo);
+}
+
+// Return next NUM_ITEMS_TO_RETURN items, fromItemId is inclusive
+export function getItems(accountId: string, fromItemId: i32, limit: i32): Item[] {
+  return playerItemsMap(accountId).values(fromItemId, i32.MAX_VALUE, limit);
+}
+
+export function playerHasItem(accountId: string, itemId: i32, quantity: u32): bool {
+  let item = playerItemsMap(accountId).get(itemId);
+  return (item != null && item.quantity >= quantity);
+}
+
+function internalIncrementItem(accountId: string, itemId: i32, increment: i64): void {
+  let itemsMap = playerItemsMap(accountId);
+  let item = itemsMap.get(itemId);
+  let quantity: i64 = 0;
+  if (item != null) {
+    quantity = <i64>(item.quantity);
+  }
+  quantity += increment;
+  assert(quantity >= 0, "Player doesn't have the required item(s)");
+  if (quantity == 0) {
+    itemsMap.remove(itemId);
+  } else {
+    itemsMap.set(itemId, {
+      itemId,
+      quantity,
+    });
+  }
+}
+
+export function giveItemToPlayer(accountId: string, itemId: i32, quantity: u32): void {
+  assert(context.sender != accountId, "Can't give item to yourself");
+  assert(quantity > 0, "Quantity should be positive");
+  let giver = myPlayer();
+  let taker = getPlayer(accountId);
+  assert(giver.location.key() == taker.location.key(), "Players are not at the same location");
+
+  internalIncrementItem(giver.accountId, itemId, -(<i64>quantity));
+  internalIncrementItem(taker.accountId, itemId, <i64>quantity);
+}
+
+export function _itemWasTakenCallback(accountId: string, itemId: i32, quantity: u32): void {
+  let results = ContractPromise.getResults();
+  assert(results.length == 1, "WHAT?");
+  if (!results[0].success) {
+    // refund items
+    internalIncrementItem(accountId, itemId, <i64>quantity);
+  }
+}
+
+export function giveItemToCell(itemId: i32, quantity: u32): void {
+  assert(context.manaLeft() >= 2, "Not enough requests to complete this transaction");
+  assert(quantity > 0, "Quantity should be positive");
+  let player = myPlayer();
+  let cellId = getCellId(<Location>(player.location));
+  let cellInfo = getCellInfo(cellId);
+  assert(cellInfo.contractId != null && cellInfo.contractId.length > 0, "Empty contract on the cell");
+
+  internalIncrementItem(player.accountId, itemId, -(<i64>quantity));
+
+  let takeItemFromPlayerArgs: TakeItemFromPlayerArgs = {
+    accountId: player.accountId,
+    itemId,
+    quantity,
+    location: player.location,
+    cellId,
+  };
+
+  let promise = ContractPromise.create(
+      cellInfo.contractId,
+      "takeItemFromPlayer",
+      takeItemFromPlayerArgs.encode(),
+      context.manaLeft() - 2,
+      0,
+  );
+
+  let itemWasTakenArgs: ItemWasTakenArgs = {
+    accountId: player.accountId,
+    itemId,
+    quantity,
+  };
+  promise = promise.then(
+      context.contractName,
+      "_itemWasTakenCallback",
+      itemWasTakenArgs.encode(),
+  );
+  promise.returnAsResult();
 }
 
 export function addItem(accountId: string, itemId: i32, quantity: u32): void {
@@ -58,12 +149,13 @@ export function addItem(accountId: string, itemId: i32, quantity: u32): void {
   assert(context.sender == itemInfo.owner, "Item can only be given by " + itemInfo.owner);
   // Check that the given player (accountId) is at the cell with the caller contract.
   assertPlayerCell(accountId);
-  // Incrementing number of items
-  let itemsMap = playerItemsMap(accountId);
-  itemsMap.set(itemId, itemsMap.get(itemId, 0) + <u64>quantity);
+  internalIncrementItem(accountId, itemId, <i64>quantity);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Player APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export function getPlayer(accountId: string): Player {
   let player = players.get(accountId, null);
@@ -95,7 +187,10 @@ export function move(dx: i32, dy: i32): View {
   return lookAround(p.accountId);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Cells
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export function getCellInfo(index: i32): CellInfo {
   return cellInfos[index];
@@ -106,11 +201,20 @@ export function createNewCell(cellInfo: CellInfo): i32 {
   return cellInfos.push(cellInfo);
 }
 
+function isRoad(x: i32): bool {
+  x = abs(x);
+  if (x <= 10) {
+    return (x == 1 || x == 3 || x == 6 || x == 10);
+  }
+  let sqrt_x = <i32>(sqrt<f32>(x * 2));
+  return sqrt_x * (sqrt_x + 1) == x * 2;
+}
+
 function getLockedCellId(location: Location): i32 {
   if (location.x == 0 && location.y == 0) {
     return CELL_ID_START;
   }
-  if (location.x % ROAD_EVERY_N == 0 || location.y % ROAD_EVERY_N == 0) {
+  if (isRoad(location.x) || isRoad(location.y)) {
     return CELL_ID_ROAD;
   }
   return -1;
@@ -154,7 +258,10 @@ export function deploy(cellId: i32): void {
   }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // View
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export function lookAround(accountId: string): View {
   let p = getPlayer(accountId);
@@ -175,7 +282,10 @@ export function lookAround(accountId: string): View {
   return view;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Init function
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export function init(isTest: bool): void {
   assert(context.sender == context.contractName, "Can only be called by the contract owner");
