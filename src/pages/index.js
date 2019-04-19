@@ -3,7 +3,7 @@ import { Tabs, Tab } from 'react-bootstrap'
 import Head from 'next/head'
 // import { Near } from 'nearlib'
 
-const USE_WALLET = false;
+const USE_WALLET = true;
 const contractId = "metanear-dev-001";
 const localStorageKeyCellPrefix = "cell:";
 const localStorageKeyCellInfoPrefix = "cellInfo:"
