@@ -17,6 +17,7 @@
         "nearlib": "^0.4.2",
         "next": "^8.0.3",
         "react": "^16.8.4",
-        "react-dom": "^16.8.4"
+        "react-dom": "^16.8.4",
+        "react-bootstrap": "^1.0.0-beta.8"
     }
 }

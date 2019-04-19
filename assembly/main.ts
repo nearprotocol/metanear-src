@@ -8,7 +8,7 @@ import { ItemInfo, Item, Location, Player, View, CellInfo, TakeItemFromPlayerArg
 const KEY_INITIATED = "initiated";
 
 const MAX_DISTANCE_TO_SEE: i32 = 7;
-const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
+const NUM_CELLS_YOU_SEE: i32 = 15 * 15;
 const MAX_DISTANCE_TO_MOVE: i32 = 7;
 const MAX_DISTANCE_TO_DEPLOY: i32 = 7;
 
@@ -179,8 +179,7 @@ function isClose(dx: i32, dy: i32, maxDistance: i32): bool {
   return  dx >= -maxDistance &&
       dx <= maxDistance &&
       dy >= -maxDistance &&
-      dy <= maxDistance &&
-      dx * dx + dy * dy <= maxDistance * maxDistance;
+      dy <= maxDistance;
 }
 
 export function move(dx: i32, dy: i32): View {
@@ -279,10 +278,8 @@ export function lookAround(accountId: string): View {
   let n = 0;
   for (let i = -MAX_DISTANCE_TO_SEE; i <= MAX_DISTANCE_TO_SEE; ++i) {
     for (let j = -MAX_DISTANCE_TO_SEE; j <= MAX_DISTANCE_TO_SEE; ++j) {
-      if (i * i + j * j <= MAX_DISTANCE_TO_SEE * MAX_DISTANCE_TO_SEE) {
-        // inside
-        view.cellIds[n++] = getCellId(<Location>(Location.create(p.location.x + j, p.location.y + i)));
-      }
+      // inside
+      view.cellIds[n++] = getCellId(<Location>(Location.create(p.location.x + j, p.location.y + i)));
     }
   }
   assert(n == NUM_CELLS_YOU_SEE, "Internal bug with number of cells you see");
@@ -312,7 +309,7 @@ export function init(isTest: bool): void {
   let owner = context.contractName;
   storage.set<bool>(KEY_INITIATED, true);
   cellInfos.push({
-    webUrl: "https://metanear.com/start/",
+    webUrl: "/start/",
     imageUrl: "/static/imgs/start.png",
     owner,
     otherPlayersCanDeploy: false,

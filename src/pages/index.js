@@ -1,8 +1,9 @@
 import Component from 'react'
+import { Tabs, Tab } from 'react-bootstrap'
 import Head from 'next/head'
 // import { Near } from 'nearlib'
 
-const USE_WALLET = true;
+const USE_WALLET = false;
 const contractId = "metanear-dev-001";
 const localStorageKeyCellPrefix = "cell:";
 const localStorageKeyCellInfoPrefix = "cellInfo:"
@@ -18,14 +19,12 @@ const locationKey = (location) => JSON.stringify(location);
 const cellKey = (cell) => locationKey(cell.location);
 const grassColor = (a) => `rgb(${Math.round(86*a)}, ${Math.round(125*a)}, ${Math.round(70*a)})`;
 const _offsetCache = [];
-const isClose = (dx, dy, maxDistance) => (dx * dx + dy * dy <= maxDistance * maxDistance);
+const isClose = (dx, dy, maxDistance) => (Math.abs(dx) <= maxDistance && Math.abs(dy) <= maxDistance);
 const cellOffsets = (i) => {
     if (_offsetCache.length == 0) {
         for (let dy = -viewDistance; dy <= viewDistance; ++dy) {
             for (let dx = -viewDistance; dx <= viewDistance; ++dx) {
-                if (isClose(dx, dy, viewDistance)) {
-                    _offsetCache.push({dx, dy});
-                }
+                _offsetCache.push({dx, dy});
             }
         }
     }
@@ -37,11 +36,12 @@ class Grid extends React.Component {
         const canvas = this.refs.canvas
         const ctx = canvas.getContext("2d")
         ctx.clearRect(0, 0, this.props.width, this.props.height);
-        ctx.fillStyle = "#FF0000";
         const centerX = this.props.width / 2 - this.props.cellWidth / 2
         const centerY = this.props.height / 2 - this.props.cellHeight / 2
         const cellNumberX = this.props.width / this.props.cellWidth
         const cellNumberY = this.props.height / this.props.cellHeight
+        /*
+        ctx.fillStyle = "#FF0000";
         for (let i =  - cellNumberX / 2; i < cellNumberX / 2; ++i) {
             ctx.beginPath()
             ctx.moveTo(centerX + i * this.props.cellWidth, 0)
@@ -54,10 +54,11 @@ class Grid extends React.Component {
             ctx.lineTo(this.props.width, centerY + (i - 0.7) * this.props.cellHeight)
             ctx.stroke()
         }
+        */
         const dxDy = (location) => {
             return {
-                dx: location.x - this.props.playerX,
-                dy: location.y - this.props.playerY,
+                dx: location.x - (this.props.player && this.props.player.location.x),
+                dy: location.y - (this.props.player && this.props.player.location.y),
             };
         }
         const dxDyRect = (d) => {
@@ -88,10 +89,6 @@ class Grid extends React.Component {
                 ctx.fillStyle = 'rgba(64, 0, 0, 1.0)';
                 ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
             }
-            if (!isClose(d.dx, d.dy, viewDistance)) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-            }
         })
         renderImg(dxDyRect({dx: 0, dy: 0}), playerImgUrl);
         document.addEventListener('mousemove', this.onMouseMove, false)
@@ -102,7 +99,9 @@ class Grid extends React.Component {
     onMouseMove = (e) => {
         const centerX = this.props.width / 2 - this.props.cellWidth / 2
         const centerY = this.props.height / 2 - this.props.cellHeight / 2
-        this.props.onHighlight(Math.floor((e.offsetX - centerX) / this.props.cellWidth) + this.props.playerX, Math.floor((e.offsetY - centerY) / this.props.cellHeight) + this.props.playerY)
+        this.props.onHighlight(
+            Math.floor((e.offsetX - centerX) / this.props.cellWidth) + (this.props.player && this.props.player.location.x),
+            Math.floor((e.offsetY - centerY) / this.props.cellHeight) + (this.props.player && this.props.player.location.y))
     }
     render() {
         return (
@@ -137,7 +136,7 @@ class WalletLogout extends React.Component {
 class MiniGameView extends React.Component {
     render() {
         return (
-            <iframe src={this.props.url} width={640} height={480}/>
+            <iframe src={this.props.url} frameborder="0" width="100%" height="100%"/>
         )
     }
 }
@@ -152,6 +151,7 @@ class Game extends React.Component {
             canMoveThere: false,
             player: null,
             cellInfos: {},
+            tabKey: "info",
         };
         this.fetchingImages = {};
         this.fetchingCellInfos = {};
@@ -212,12 +212,12 @@ class Game extends React.Component {
                 };
                 this.checkCellInfo(cellId);
                 cells[cellKey(cell)] = cell
-                localStorage.setItem(localStorageKeyCellPrefix + cellKey(cell), JSON.stringify(cell))
+                // localStorage.setItem(localStorageKeyCellPrefix + cellKey(cell), JSON.stringify(cell))
             })
         }
         this.setState({
             player,
-            allCells: Object.assign(this.state.allCells, cells)
+            allCells: cells,
         })
     }
 
@@ -259,14 +259,14 @@ class Game extends React.Component {
         if (accountId) {
             let player = await this.contract.getPlayer({accountId})
             console.log(player)
-            this.setState({player})
+            this.setState({player, tabKey: "map"})
         }
         await this.fetchCells();
     }
     componentDidMount() {
-        let allCells = {};
         let cellInfos = {};
         Object.keys(localStorage).forEach((key) => {
+            /*
             if (key.startsWith(localStorageKeyCellPrefix)) {
                 try {
                     let cell = JSON.parse(localStorage.getItem(key))
@@ -276,7 +276,9 @@ class Game extends React.Component {
                 } catch (err) {
                     // whatever
                 }
-            } else if (key.startsWith(localStorageKeyCellInfoPrefix)) {
+            } else
+            */
+            if (key.startsWith(localStorageKeyCellInfoPrefix)) {
                 try {
                     let cellInfo = JSON.parse(localStorage.getItem(key))
                     if (localStorageKeyCellInfoPrefix + cellInfo.cellId == key) {
@@ -290,7 +292,7 @@ class Game extends React.Component {
                 }
             }
         })
-        this.setState({ allCells, cellInfos })
+        this.setState({ cellInfos })
         this.fetchImage(playerImgUrl);
         this.nearConnect();
     }
@@ -338,24 +340,37 @@ class Game extends React.Component {
                 cellInfo = this.state.cellInfos[cellId];
             }
         }
+        const isWebPage = cellInfo && !!cellInfo.webUrl;
         return (
-            <div>
-                {control}
-                <Grid width={640} height={425} cellWidth={32} cellHeight={32}
-                allCells={this.state.allCells} onHighlight={this.onHighlight}
-                    images={this.state.images} cellInfos={this.state.cellInfos}
-                    playerX={this.state.player && this.state.player.location.x} 
-                    playerY={this.state.player && this.state.player.location.y} 
-                onClick={this.movePlayer} />
-                <div>Highlighted cell: {JSON.stringify(this.state.highlightCell)}</div>
-                <div>Player: {JSON.stringify(this.state.player)}</div>
-                {cellInfo && cellInfo.webUrl && <MiniGameView url={cellInfo.webUrl} contractId={cellInfo.contractId} />}
-            </div>
+            <Tabs
+                id="controlled-tab-example"
+                activeKey={this.state.tabKey}
+                onSelect={tabKey => this.setState({ tabKey })}
+            >
+                <Tab eventKey="info" title= "📜Info">
+                    {control}
+                </Tab>
+                <Tab eventKey="map" title="🌎World">
+                    <Grid width={32 * 15} height={32 * 15} cellWidth={32} cellHeight={32}
+                          allCells={this.state.allCells} onHighlight={this.onHighlight}
+                          images={this.state.images} cellInfos={this.state.cellInfos}
+                          player={this.state.player}
+                          onClick={this.movePlayer} />
+                    <div>Highlighted cell: {JSON.stringify(this.state.highlightCell)}</div>
+                    <div>Player: {JSON.stringify(this.state.player)}</div>
+                </Tab>
+                <Tab eventKey="cell-view" title="🏢Cell View" disabled={!isWebPage}>
+                    {isWebPage && <MiniGameView url={cellInfo.webUrl} contractId={cellInfo.contractId} />}
+                </Tab>
+                <Tab eventKey="chat" title="💬Chat" disabled>
+                    Bla
+                </Tab>
+            </Tabs>
         )
     }
 }
 
-export default function Index() {
+export default () => {
     return (
         <div>
             <Head>
