@@ -4,7 +4,7 @@ import Head from 'next/head'
 // import { Near } from 'nearlib'
 
 const USE_WALLET = true;
-const contractId = "metanear-dev-001";
+const contractId = "metanear-dev-002";
 const localStorageKeyCellPrefix = "cell:";
 const localStorageKeyCellInfoPrefix = "cellInfo:"
 const appTitle = "Meta NEAR"
