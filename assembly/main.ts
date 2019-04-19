@@ -5,9 +5,12 @@ import { context, storage, near, collections, ContractPromise } from "./near";
 
 import { ItemInfo, Item, Location, Player, View, CellInfo, TakeItemFromPlayerArgs, ItemWasTakenArgs } from "./model.near";
 
-const HOW_FAR_YOU_SEE: i32 = 7;
+const KEY_INITIATED = "initiated";
+
+const MAX_DISTANCE_TO_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 149; // precalculated
-const MAX_MOVE_DISTANCE: i32 = 7;
+const MAX_DISTANCE_TO_MOVE: i32 = 7;
+const MAX_DISTANCE_TO_DEPLOY: i32 = 7;
 
 const CELL_ID_START = 0;
 const CELL_ID_ROAD = 1;
@@ -20,9 +23,9 @@ const CELL_ID_N = 6;
 
 let players = collections.map<string, Player>("players");
 
-let cellIds = collections.map<i64, i32>("cellIds");
 let cellInfos = collections.vector<CellInfo>("cellInfos");
-let cellOwners = collections.vector<string>("cellOwners");
+let cellIds = collections.map<i64, i32>("cellIds");
+let cellOwners = collections.map<i64, string>("cellOwners");
 
 let itemInfos = collections.vector<ItemInfo>("itemInfos");
 
@@ -72,7 +75,7 @@ function internalIncrementItem(accountId: string, itemId: i32, increment: i64): 
   quantity += increment;
   assert(quantity >= 0, "Player doesn't have the required item(s)");
   if (quantity == 0) {
-    itemsMap.remove(itemId);
+    itemsMap.delete(itemId);
   } else {
     itemsMap.set(itemId, {
       itemId,
@@ -102,7 +105,7 @@ export function _itemWasTakenCallback(accountId: string, itemId: i32, quantity: 
 }
 
 export function giveItemToCell(itemId: i32, quantity: u32): void {
-  assert(context.manaLeft() >= 2, "Not enough requests to complete this transaction");
+  assert(context.manaLeft >= 2, "Not enough requests to complete this transaction");
   assert(quantity > 0, "Quantity should be positive");
   let player = myPlayer();
   let cellId = getCellId(<Location>(player.location));
@@ -123,7 +126,7 @@ export function giveItemToCell(itemId: i32, quantity: u32): void {
       cellInfo.contractId,
       "takeItemFromPlayer",
       takeItemFromPlayerArgs.encode(),
-      context.manaLeft() - 2,
+      context.manaLeft - 2,
       0,
   );
 
@@ -133,9 +136,9 @@ export function giveItemToCell(itemId: i32, quantity: u32): void {
     quantity,
   };
   promise = promise.then(
-      context.contractName,
       "_itemWasTakenCallback",
       itemWasTakenArgs.encode(),
+      0,
   );
   promise.returnAsResult();
 }
@@ -172,14 +175,16 @@ function myPlayer(): Player {
   return getPlayer(context.sender);
 }
 
+function isClose(dx: i32, dy: i32, maxDistance: i32): bool {
+  return  dx >= -maxDistance &&
+      dx <= maxDistance &&
+      dy >= -maxDistance &&
+      dy <= maxDistance &&
+      dx * dx + dy * dy <= maxDistance * maxDistance;
+}
+
 export function move(dx: i32, dy: i32): View {
-  assert(
-      dx >= -MAX_MOVE_DISTANCE &&
-      dx <= MAX_MOVE_DISTANCE &&
-      dy >= -MAX_MOVE_DISTANCE &&
-      dy <= MAX_MOVE_DISTANCE &&
-      dx * dx + dy * dy <= MAX_MOVE_DISTANCE * MAX_MOVE_DISTANCE,
-    "Can move so far");
+  assert(isClose(dx, dy, MAX_DISTANCE_TO_MOVE), "Can move that far");
   let p = myPlayer();
   p.location.x += dx;
   p.location.y += dy;
@@ -192,8 +197,8 @@ export function move(dx: i32, dy: i32): View {
 // Cells
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export function getCellInfo(index: i32): CellInfo {
-  return cellInfos[index];
+export function getCellInfo(cellId: i32): CellInfo {
+  return cellInfos[cellId];
 }
 
 export function createNewCell(cellInfo: CellInfo): i32 {
@@ -202,12 +207,14 @@ export function createNewCell(cellInfo: CellInfo): i32 {
 }
 
 function isRoad(x: i32): bool {
+  // Roads are 1, 4, 8, 13, 19, 26 ...
   x = abs(x);
-  if (x <= 10) {
-    return (x == 1 || x == 3 || x == 6 || x == 10);
+  if (x <= 12) {
+    return (x == 1 || x == 4 || x == 8);
   }
-  let sqrt_x = <i32>(sqrt<f32>(x * 2));
-  return sqrt_x * (sqrt_x + 1) == x * 2;
+  x = x * 2 + 4;
+  let sqrt_x = <i32>sqrt(<f32>x);
+  return sqrt_x * (sqrt_x + 1) == x;
 }
 
 function getLockedCellId(location: Location): i32 {
@@ -234,9 +241,11 @@ function getCellId(location: Location): i32 {
   }
 }
 
-export function deploy(cellId: i32): void {
+export function deploy(dx: i32, dy: i32, cellId: i32): void {
   // Check cellID
   assert(cellInfos.containsIndex(cellId), "Unknown cell type");
+  // Is it within close distance to deploy.
+  assert(isClose(dx, dy, MAX_DISTANCE_TO_DEPLOY), "Can't deploy that far");
   // Verify cellInfo can be deployed by this user
   let cellInfo = getCellInfo(cellId);
   if (!cellInfo.otherPlayersCanDeploy) {
@@ -244,11 +253,11 @@ export function deploy(cellId: i32): void {
   }
   // Verify the location is not locked by the road
   let p = myPlayer();
-  let location = <Location>p.location;
-  let lockedCellId = getLockedCellId(location);
+  let location = Location.create(p.location.x + dx, p.location.y + dy);
+  let lockedCellId = getLockedCellId(<Location>location);
   assert(lockedCellId < 0, "Can't deploy on the locked cell (e.g. public roads)");
   // Verify the location is not owner by someone else
-  const locationKey = location.key();
+  let locationKey = location.key();
   let cellOwner = cellOwners.get(locationKey);
   assert(cellOwner == null || p.accountId == cellOwner, "This cell is owned by other player");
   // TODO: Check how many cells player can deploy.
@@ -266,13 +275,13 @@ export function deploy(cellId: i32): void {
 export function lookAround(accountId: string): View {
   let p = getPlayer(accountId);
   let view = new View();
-  view.cells = new Array<i32>(NUM_CELLS_YOU_SEE);
+  view.cellIds = new Array<i32>(NUM_CELLS_YOU_SEE);
   let n = 0;
-  for (let i = -HOW_FAR_YOU_SEE; i <= HOW_FAR_YOU_SEE; ++i) {
-    for (let j = -HOW_FAR_YOU_SEE; j <= HOW_FAR_YOU_SEE; ++j) {
-      if (i * i + j * j <= HOW_FAR_YOU_SEE * HOW_FAR_YOU_SEE) {
+  for (let i = -MAX_DISTANCE_TO_SEE; i <= MAX_DISTANCE_TO_SEE; ++i) {
+    for (let j = -MAX_DISTANCE_TO_SEE; j <= MAX_DISTANCE_TO_SEE; ++j) {
+      if (i * i + j * j <= MAX_DISTANCE_TO_SEE * MAX_DISTANCE_TO_SEE) {
         // inside
-        view.cells[n++] = getCellId(<Location>(Location.create(p.location.x + j, p.location.y + i)));
+        view.cellIds[n++] = getCellId(<Location>(Location.create(p.location.x + j, p.location.y + i)));
       }
     }
   }
@@ -288,8 +297,8 @@ export function lookAround(accountId: string): View {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export function init(isTest: bool): void {
-  assert(context.sender == context.contractName, "Can only be called by the contract owner");
-  if (storage.get<bool>("initiated", false)) {
+  // assert(context.sender == context.contractName, "Can only be called by the contract owner");
+  if (storage.get<bool>(KEY_INITIATED, false)) {
     return;
   }
 
@@ -300,36 +309,36 @@ export function init(isTest: bool): void {
     // return;
   }
 
-  const owner = context.contractName;
-  storage.set<bool>("initiated", true);
+  let owner = context.contractName;
+  storage.set<bool>(KEY_INITIATED, true);
   cellInfos.push({
     webUrl: "https://metanear.com/start/",
-    imageUrl: "/imgs/start.png",
+    imageUrl: "/static/imgs/start.png",
     owner,
     otherPlayersCanDeploy: false,
   });
   cellInfos.push({
-    imageUrl: "/imgs/road.png",
+    imageUrl: "/static/imgs/road.png",
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/imgs/grass0.png",
+    imageUrl: "/static/imgs/grass0.png",
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/imgs/grass1.png",
+    imageUrl: "/static/imgs/grass1.png",
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/imgs/grass2.png",
+    imageUrl: "/static/imgs/grass2.png",
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/imgs/grass3.png",
+    imageUrl: "/static/imgs/grass3.png",
     owner,
     otherPlayersCanDeploy: true,
   });

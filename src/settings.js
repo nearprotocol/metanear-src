@@ -2,6 +2,6 @@ const settings = {
   deps: {
     createAccount: nearlib.dev.createAccountWithLocalNodeConnection
   },
-  nodeUrl: 'https://studio.nearprotocol.com/devnet',
+  nodeUrl: 'http://localhost:3030',
 };
-const contractName = "metanear";
+const contractName = "metanear-dev-001";
