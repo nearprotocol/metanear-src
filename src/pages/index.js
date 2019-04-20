@@ -4,7 +4,7 @@ import Head from 'next/head'
 // import { Near } from 'nearlib'
 
 const USE_WALLET = true;
-const contractId = "metanear-dev-002";
+const contractId = "metanear-dev-003";
 const localStorageKeyCellPrefix = "cell:";
 const localStorageKeyCellInfoPrefix = "cellInfo:"
 const appTitle = "Meta NEAR"
@@ -13,6 +13,8 @@ const playerImgUrl = '/static/imgs/player.png';
 const viewDistance = 7;
 const localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
 const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.4.7/dist/nearlib.js';
+const DX = [1, 0, -1, 0];
+const DY = [0, 1, 0, -1];
 
 
 const locationKey = (location) => JSON.stringify(location);
@@ -91,6 +93,20 @@ class Grid extends React.Component {
             }
         })
         renderImg(dxDyRect({dx: 0, dy: 0}), playerImgUrl);
+        const path = this.props.movePath;
+        if (path) {
+            let pos = {
+                dx: 0,
+                dy: 0,
+            };
+            for (let i = 0; i < path.length; ++i) {
+                pos = {
+                    dx: pos.dx + DX[path[i]],
+                    dy: pos.dy + DY[path[i]],
+                }
+                renderImg(dxDyRect(pos), playerImgUrl);
+            }
+        }
         document.addEventListener('mousemove', this.onMouseMove, false)
     }
     componentWillUnmount() {
@@ -136,7 +152,7 @@ class WalletLogout extends React.Component {
 class MiniGameView extends React.Component {
     render() {
         return (
-            <iframe src={this.props.url} frameborder="0" width="100%" height="100%"/>
+            <iframe src={this.props.url} frameBorder="0" width="100%" height="100%"/>
         )
     }
 }
@@ -148,7 +164,7 @@ class Game extends React.Component {
             allCells: {},
             highlightCell: {},
             images: {},
-            canMoveThere: false,
+            movePath: null,
             player: null,
             cellInfos: {},
             tabKey: "info",
@@ -218,6 +234,8 @@ class Game extends React.Component {
         this.setState({
             player,
             allCells: cells,
+            movePath: null,
+            highlightCell: null,
         })
     }
 
@@ -252,7 +270,7 @@ class Game extends React.Component {
         console.log(accountId);
         this.contract = await near.loadContract(contractId, {
             viewMethods: ["lookAround", "getPlayer", "getCellInfo"],
-            changeMethods: ["move", "deploy", "init"],
+            changeMethods: ["move", "deploy", "init", "createNewCell"],
             sender: accountId,
         });
         window.contract = this.contract
@@ -266,18 +284,6 @@ class Game extends React.Component {
     componentDidMount() {
         let cellInfos = {};
         Object.keys(localStorage).forEach((key) => {
-            /*
-            if (key.startsWith(localStorageKeyCellPrefix)) {
-                try {
-                    let cell = JSON.parse(localStorage.getItem(key))
-                    if (localStorageKeyCellPrefix + cellKey(cell) == key) {
-                        allCells[cellKey(cell)] = cell
-                    }
-                } catch (err) {
-                    // whatever
-                }
-            } else
-            */
             if (key.startsWith(localStorageKeyCellInfoPrefix)) {
                 try {
                     let cellInfo = JSON.parse(localStorage.getItem(key))
@@ -297,8 +303,13 @@ class Game extends React.Component {
         this.nearConnect();
     }
     onHighlight = (x, y) => {
-        let highlightCell = this.state.allCells[locationKey({x, y})] || {}
-        this.setState({highlightCell, canMoveThere: this.canMove(x, y)})
+        let highlightCell = this.state.allCells[locationKey({x, y})]
+        if (highlightCell != this.state.highlightCell) {
+            this.setState({
+                highlightCell,
+                movePath: this.calculatePath(highlightCell)
+            })
+        }
     }
     login = () => {
         this.walletAccount.requestSignIn(
@@ -309,21 +320,66 @@ class Game extends React.Component {
     logout = () => {
 
     }
-    canMove = (x, y) => {
-        if (!this.state.player) {
-            return false
+    calculatePath = (targetCell) => {
+        if (!this.state.player || !targetCell) {
+            return null;
         }
-        let dx = x - this.state.player.location.x;
-        let dy = y - this.state.player.location.y;
-        return isClose(dx, dy, 7);
+        const px = this.state.player.location.x;
+        const py = this.state.player.location.y;
+        const tx = targetCell.location.x;
+        const ty = targetCell.location.y;
+        const visited = {};
+        const q = [];
+        const add = (st) => {
+            const key = locationKey({
+                x: st.x,
+                y: st.y,
+            });
+            if (key in visited || !(key in this.state.allCells)) {
+                return;
+            }
+            let cellInfo = this.state.cellInfos[this.state.allCells[key].cellId];
+            if (!cellInfo || cellInfo.blocking) {
+                return;
+            }
+            visited[key] = st;
+            q.push(st);
+        }
+        add({
+            x: px,
+            y: py,
+            dir: -1,
+            last: null,
+        });
+        for (let i = 0; i < q.length; ++i) {
+            let cur = q[i];
+            if (cur.x == tx && cur.y == ty) {
+                // found
+                let path = [];
+                while (cur.last != null) {
+                    path.push(cur.dir);
+                    cur = cur.last;
+                }
+                return path.reverse();
+            }
+            for (let j = 0; j < 4; ++j) {
+                add({
+                    x: cur.x + DX[j],
+                    y: cur.y + DY[j],
+                    dir: j,
+                    last: cur,
+                });
+            }
+        }
+        return null;
     }
     movePlayer = () => {
-        if (!this.state.canMoveThere || !this.state.highlightCell.location) {
+        if (!this.state.movePath) {
             return
         }
-        let dx = this.state.highlightCell.location.x - this.state.player.location.x
-        let dy = this.state.highlightCell.location.y - this.state.player.location.y
-        this.contract.move({dx, dy}).then((res) => this.updateView(res.lastResult));
+        this.contract.move({path: this.state.movePath})
+            .then((res) => this.updateView(res.lastResult))
+            .catch((e) => console.log(e));
     }
     render() {
         let control;
@@ -354,10 +410,8 @@ class Game extends React.Component {
                     <Grid width={32 * 15} height={32 * 15} cellWidth={32} cellHeight={32}
                           allCells={this.state.allCells} onHighlight={this.onHighlight}
                           images={this.state.images} cellInfos={this.state.cellInfos}
-                          player={this.state.player}
+                          player={this.state.player} movePath={this.state.movePath}
                           onClick={this.movePlayer} />
-                    <div>Highlighted cell: {JSON.stringify(this.state.highlightCell)}</div>
-                    <div>Player: {JSON.stringify(this.state.player)}</div>
                 </Tab>
                 <Tab eventKey="cell-view" title="🏢Cell View" disabled={!isWebPage}>
                     {isWebPage && <MiniGameView url={cellInfo.webUrl} contractId={cellInfo.contractId} />}

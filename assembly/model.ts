@@ -4,6 +4,8 @@ export class CellInfo {
   owner: string;
   imageUrl: string;
   otherPlayersCanDeploy: bool;
+  // Blocking path
+  blocking: bool;
 }
 
 export class Item {

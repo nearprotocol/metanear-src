@@ -23287,7 +23287,7 @@ __webpack_require__.r(__webpack_exports__);
  // import { Near } from 'nearlib'
 
 var USE_WALLET = false;
-var contractId = "metanear-dev-001";
+var contractId = "metanear-dev-002";
 var localStorageKeyCellPrefix = "cell:";
 var localStorageKeyCellInfoPrefix = "cellInfo:";
 var appTitle = "Meta NEAR";
@@ -23296,6 +23296,8 @@ var playerImgUrl = '/static/imgs/player.png';
 var viewDistance = 7;
 var localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
 var devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.4.7/dist/nearlib.js';
+var DX = [1, 0, -1, 0];
+var DY = [0, 1, 0, -1];
 
 var locationKey = function locationKey(location) {
   return _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(location);
@@ -23433,6 +23435,23 @@ function (_React$Component) {
         dx: 0,
         dy: 0
       }), playerImgUrl);
+      var path = this.props.movePath;
+
+      if (path) {
+        var pos = {
+          dx: 0,
+          dy: 0
+        };
+
+        for (var i = 0; i < path.length; ++i) {
+          pos = {
+            dx: pos.dx + DX[path[i]],
+            dy: pos.dy + DY[path[i]]
+          };
+          renderImg(dxDyRect(pos), playerImgUrl);
+        }
+      }
+
       document.addEventListener('mousemove', this.onMouseMove, false);
     }
   }, {
@@ -23527,7 +23546,7 @@ function (_React$Component4) {
     value: function render() {
       return react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("iframe", {
         src: this.props.url,
-        frameborder: "0",
+        frameBorder: "0",
         width: "100%",
         height: "100%"
       });
@@ -23627,7 +23646,9 @@ function (_React$Component5) {
 
       _this3.setState({
         player: player,
-        allCells: cells
+        allCells: cells,
+        movePath: null,
+        highlightCell: null
       });
     });
 
@@ -23708,7 +23729,7 @@ function (_React$Component5) {
               _context2.next = 15;
               return near.loadContract(contractId, {
                 viewMethods: ["lookAround", "getPlayer", "getCellInfo"],
-                changeMethods: ["move", "deploy", "init"],
+                changeMethods: ["move", "deploy", "init", "createNewCell"],
                 sender: accountId
               });
 
@@ -23751,12 +23772,14 @@ function (_React$Component5) {
       var highlightCell = _this3.state.allCells[locationKey({
         x: x,
         y: y
-      })] || {};
+      })];
 
-      _this3.setState({
-        highlightCell: highlightCell,
-        canMoveThere: _this3.canMove(x, y)
-      });
+      if (highlightCell != _this3.state.highlightCell) {
+        _this3.setState({
+          highlightCell: highlightCell,
+          movePath: _this3.calculatePath(highlightCell)
+        });
+      }
     });
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "login", function () {
@@ -23765,29 +23788,84 @@ function (_React$Component5) {
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "logout", function () {});
 
-    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "canMove", function (x, y) {
-      if (!_this3.state.player) {
-        return false;
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "calculatePath", function (targetCell) {
+      if (!_this3.state.player || !targetCell) {
+        return null;
       }
 
-      var dx = x - _this3.state.player.location.x;
-      var dy = y - _this3.state.player.location.y;
-      return isClose(dx, dy, 7);
+      var px = _this3.state.player.location.x;
+      var py = _this3.state.player.location.y;
+      var tx = targetCell.location.x;
+      var ty = targetCell.location.y;
+      var visited = {};
+      var q = [];
+
+      var add = function add(st) {
+        var key = locationKey({
+          x: st.x,
+          y: st.y
+        });
+
+        if (key in visited || !(key in _this3.state.allCells)) {
+          return;
+        }
+
+        var cellInfo = _this3.state.cellInfos[_this3.state.allCells[key].cellId];
+
+        if (!cellInfo || cellInfo.blocking) {
+          return;
+        }
+
+        visited[key] = st;
+        q.push(st);
+      };
+
+      add({
+        x: px,
+        y: py,
+        dir: -1,
+        last: null
+      });
+
+      for (var i = 0; i < q.length; ++i) {
+        var cur = q[i];
+
+        if (cur.x == tx && cur.y == ty) {
+          // found
+          var path = [];
+
+          while (cur.last != null) {
+            path.push(cur.dir);
+            cur = cur.last;
+          }
+
+          return path.reverse();
+        }
+
+        for (var j = 0; j < 4; ++j) {
+          add({
+            x: cur.x + DX[j],
+            y: cur.y + DY[j],
+            dir: j,
+            last: cur
+          });
+        }
+      }
+
+      return null;
     });
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "movePlayer", function () {
-      if (!_this3.state.canMoveThere || !_this3.state.highlightCell.location) {
+      if (!_this3.state.movePath) {
         return;
       }
 
-      var dx = _this3.state.highlightCell.location.x - _this3.state.player.location.x;
-      var dy = _this3.state.highlightCell.location.y - _this3.state.player.location.y;
-
       _this3.contract.move({
-        dx: dx,
-        dy: dy
+        path: _this3.state.movePath
       }).then(function (res) {
         return _this3.updateView(res.lastResult);
+      }).catch(function (e) {
+        return console.log(e);
       });
     });
 
@@ -23795,7 +23873,7 @@ function (_React$Component5) {
       allCells: {},
       highlightCell: {},
       images: {},
-      canMoveThere: false,
+      movePath: null,
       player: null,
       cellInfos: {},
       tabKey: "info"
@@ -23814,18 +23892,6 @@ function (_React$Component5) {
       var cellInfos = {};
 
       _babel_runtime_corejs2_core_js_object_keys__WEBPACK_IMPORTED_MODULE_0___default()(localStorage).forEach(function (key) {
-        /*
-        if (key.startsWith(localStorageKeyCellPrefix)) {
-            try {
-                let cell = JSON.parse(localStorage.getItem(key))
-                if (localStorageKeyCellPrefix + cellKey(cell) == key) {
-                    allCells[cellKey(cell)] = cell
-                }
-            } catch (err) {
-                // whatever
-            }
-        } else
-        */
         if (key.startsWith(localStorageKeyCellInfoPrefix)) {
           try {
             var cellInfo = JSON.parse(localStorage.getItem(key));
@@ -23902,8 +23968,9 @@ function (_React$Component5) {
         images: this.state.images,
         cellInfos: this.state.cellInfos,
         player: this.state.player,
+        movePath: this.state.movePath,
         onClick: this.movePlayer
-      }), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("div", null, "Highlighted cell: ", _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(this.state.highlightCell)), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("div", null, "Player: ", _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(this.state.player))), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["Tab"], {
+      })), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["Tab"], {
         eventKey: "cell-view",
         title: "\uD83C\uDFE2Cell View",
         disabled: !isWebPage

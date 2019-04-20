@@ -11,12 +11,16 @@ const MAX_DISTANCE_TO_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 15 * 15;
 const MAX_DISTANCE_TO_MOVE: i32 = 7;
 const MAX_DISTANCE_TO_DEPLOY: i32 = 7;
+const DX: i32[] = [1, 0, -1, 0];
+const DY: i32[] = [0, 1, 0, -1];
 
 const CELL_ID_START = 0;
 const CELL_ID_ROAD = 1;
 const CELL_ID_GRASS_OFFSET = 2;
 const NUM_GRASS_CELLS = 4;
-const CELL_ID_N = 6;
+const CELL_ID_WATER = 6;
+const CELL_ID_WALL = 7;
+const CELL_ID_N = 8;
 
 // --- contract code goes below
 
@@ -182,11 +186,19 @@ function isClose(dx: i32, dy: i32, maxDistance: i32): bool {
       dy <= maxDistance;
 }
 
-export function move(dx: i32, dy: i32): View {
-  assert(isClose(dx, dy, MAX_DISTANCE_TO_MOVE), "Can move that far");
+export function move(path: i32[]): View {
+  // assert(isClose(dx, dy, MAX_DISTANCE_TO_MOVE), "Can move that far");
   let p = myPlayer();
-  p.location.x += dx;
-  p.location.y += dy;
+  let n = path.length;
+  for (let i = 0; i < n; ++i) {
+    let direction = path[i];
+    assert(direction >= 0 && direction < 4, "Direction is out of range");
+    p.location.x += DX[direction];
+    p.location.y += DY[direction];
+    let cellId = getCellId(<Location>p.location);
+    let cellInfo = getCellInfo(cellId);
+    assert(!cellInfo.blocking, "One of the cells on the way is blocking path");
+  }
   players.set(p.accountId, p);
   return lookAround(p.accountId);
 }
@@ -206,10 +218,10 @@ export function createNewCell(cellInfo: CellInfo): i32 {
 }
 
 function isRoad(x: i32): bool {
-  // Roads are 1, 4, 8, 13, 19, 26 ...
+  // Roads are 2, 7, 13, 19, 26 ...
   x = abs(x);
   if (x <= 12) {
-    return (x == 1 || x == 4 || x == 8);
+    return (x == 2 || x == 7);
   }
   x = x * 2 + 4;
   let sqrt_x = <i32>sqrt(<f32>x);
@@ -305,8 +317,25 @@ export function init(isTest: bool): void {
     // saveCell(cell);
     // return;
   }
-
   let owner = context.contractName;
+  for (let i = -1; i <= 1; ++i) {
+    for (let j = -1; j <= 1; ++j) {
+      cellOwners.set(Location.create(j, i).key(), owner);
+    }
+  }
+  let N: i32[][] = [
+    [1, 0, 0, 1],
+    [1, 1, 0, 1],
+    [1, 0, 1, 1],
+    [1, 0, 0, 1],
+  ];
+  for (let i = 0; i < N.length; ++i) {
+    for (let j = 0; j < N[i].length; ++j) {
+      if (N[i][j]) {
+        cellIds.set(Location.create(-6 + j, -6 + i).key(), CELL_ID_WALL);
+      }
+    }
+  }
   storage.set<bool>(KEY_INITIATED, true);
   cellInfos.push({
     webUrl: "/start/",
@@ -338,6 +367,18 @@ export function init(isTest: bool): void {
     imageUrl: "/static/imgs/grass3.png",
     owner,
     otherPlayersCanDeploy: true,
+  });
+  cellInfos.push({
+    imageUrl: "/static/imgs/water.png",
+    owner,
+    otherPlayersCanDeploy: true,
+    blocking: true,
+  });
+  cellInfos.push({
+    imageUrl: "/static/imgs/wall.png",
+    owner,
+    otherPlayersCanDeploy: true,
+    blocking: true,
   });
   assert(cellInfos.length == CELL_ID_N, "Incorrect default parameters");
 }
