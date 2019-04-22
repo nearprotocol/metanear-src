@@ -283,15 +283,27 @@ export function deploy(dx: i32, dy: i32, cellId: i32): void {
 // View
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export function lookAround(accountId: string): View {
+export function lookAround(accountId: string, withOwned: bool = false): View {
   let p = getPlayer(accountId);
   let view = new View();
   view.cellIds = new Array<i32>(NUM_CELLS_YOU_SEE);
   let n = 0;
+  if (withOwned) {
+    view.freeCells = new Array<i32>(NUM_CELLS_YOU_SEE);
+  }
   for (let i = -MAX_DISTANCE_TO_SEE; i <= MAX_DISTANCE_TO_SEE; ++i) {
     for (let j = -MAX_DISTANCE_TO_SEE; j <= MAX_DISTANCE_TO_SEE; ++j) {
       // inside
-      view.cellIds[n++] = getCellId(<Location>(Location.create(p.location.x + j, p.location.y + i)));
+      let loc = Location.create(p.location.x + j, p.location.y + i);
+      let cellId = getCellId(<Location>loc);
+      view.cellIds[n] = cellId;
+      if (withOwned && cellId >= 2) {
+        let owner = cellOwners.get(loc.key());
+        if (owner == null || owner == accountId) {
+          view.freeCells[n] = 1;
+        }
+      }
+      ++n;
     }
   }
   assert(n == NUM_CELLS_YOU_SEE, "Internal bug with number of cells you see");
@@ -346,7 +358,7 @@ export function init(isTest: bool): void {
   cellInfos.push({
     imageUrl: "/static/imgs/road.png",
     owner,
-    otherPlayersCanDeploy: true,
+    otherPlayersCanDeploy: false,
   });
   cellInfos.push({
     imageUrl: "/static/imgs/grass0.png",

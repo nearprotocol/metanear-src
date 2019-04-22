@@ -43,6 +43,7 @@ export class Player {
 
 export class View {
   cellIds: i32[];
+  freeCells: i32[];
   location: Location;
   cellOwner: string;
 }

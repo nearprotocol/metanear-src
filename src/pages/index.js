@@ -1,15 +1,16 @@
 import Component from 'react'
-import { Tabs, Tab } from 'react-bootstrap'
+import { Tabs, Tab, ToggleButtonGroup, ToggleButton } from 'react-bootstrap'
 import Head from 'next/head'
 // import { Near } from 'nearlib'
 
-const USE_WALLET = true;
+const USE_WALLET = false;
 const contractId = "metanear-dev-003";
 const localStorageKeyCellPrefix = "cell:";
 const localStorageKeyCellInfoPrefix = "cellInfo:"
 const appTitle = "Meta NEAR"
 const baseUrl = "http://localhost:3000"
 const playerImgUrl = '/static/imgs/player.png';
+const cantDeployImgUrl = '/static/imgs/cant_deploy.png';
 const viewDistance = 7;
 const localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
 const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.4.7/dist/nearlib.js';
@@ -91,20 +92,27 @@ class Grid extends React.Component {
                 ctx.fillStyle = 'rgba(64, 0, 0, 1.0)';
                 ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
             }
+            if (this.props.actionType == 'deploy') {
+                if (!cell.canDeploy) {
+                    renderImg(rect, cantDeployImgUrl);
+                }
+            }
         })
         renderImg(dxDyRect({dx: 0, dy: 0}), playerImgUrl);
-        const path = this.props.movePath;
-        if (path) {
-            let pos = {
-                dx: 0,
-                dy: 0,
-            };
-            for (let i = 0; i < path.length; ++i) {
-                pos = {
-                    dx: pos.dx + DX[path[i]],
-                    dy: pos.dy + DY[path[i]],
+        if (this.props.actionType == 'move') {
+            const path = this.props.movePath;
+            if (path) {
+                let pos = {
+                    dx: 0,
+                    dy: 0,
+                };
+                for (let i = 0; i < path.length; ++i) {
+                    pos = {
+                        dx: pos.dx + DX[path[i]],
+                        dy: pos.dy + DY[path[i]],
+                    }
+                    renderImg(dxDyRect(pos), playerImgUrl);
                 }
-                renderImg(dxDyRect(pos), playerImgUrl);
             }
         }
         document.addEventListener('mousemove', this.onMouseMove, false)
@@ -121,7 +129,9 @@ class Grid extends React.Component {
     }
     render() {
         return (
-            <canvas ref="canvas" width={this.props.width} height={this.props.height} onClick={this.props.onClick} />
+            <div>
+                <canvas ref="canvas" width={this.props.width} height={this.props.height} onClick={this.props.onClick} />
+            </div>
         )
     }
 }
@@ -168,6 +178,7 @@ class Game extends React.Component {
             player: null,
             cellInfos: {},
             tabKey: "info",
+            actionType: "move",
         };
         this.fetchingImages = {};
         this.fetchingCellInfos = {};
@@ -225,10 +236,10 @@ class Game extends React.Component {
                 let cell = {
                     location,
                     cellId,
+                    canDeploy: view.freeCells && view.freeCells[i],
                 };
                 this.checkCellInfo(cellId);
                 cells[cellKey(cell)] = cell
-                // localStorage.setItem(localStorageKeyCellPrefix + cellKey(cell), JSON.stringify(cell))
             })
         }
         this.setState({
@@ -238,10 +249,9 @@ class Game extends React.Component {
             highlightCell: null,
         })
     }
-
-    fetchCells = async() => {
+    fetchCells = async(withOwned) => {
         let accountId = this.state.player ? this.state.player.accountId : 'metanear';
-        let view = await this.contract.lookAround({ accountId })
+        let view = await this.contract.lookAround({ accountId, withOwned })
         this.updateView(view);
     }
     nearConnect = async () => {
@@ -279,19 +289,20 @@ class Game extends React.Component {
             console.log(player)
             this.setState({player, tabKey: "map"})
         }
-        await this.fetchCells();
+        await this.fetchCells(false);
     }
     componentDidMount() {
         let cellInfos = {};
         Object.keys(localStorage).forEach((key) => {
             if (key.startsWith(localStorageKeyCellInfoPrefix)) {
                 try {
-                    let cellInfo = JSON.parse(localStorage.getItem(key))
+                    let cellInfo = JSON.parse(localStorage.getItem(key));
                     if (localStorageKeyCellInfoPrefix + cellInfo.cellId == key) {
                         if (cellInfo.imageUrl) {
                             this.fetchImage(cellInfo.imageUrl);
                         }
                         cellInfos[cellInfo.cellId] = cellInfo;
+                        this.fetchingCellInfos[cellInfo.cellId] = true;
                     }
                 } catch (err) {
                     // whatever
@@ -300,14 +311,16 @@ class Game extends React.Component {
         })
         this.setState({ cellInfos })
         this.fetchImage(playerImgUrl);
+        this.fetchImage(cantDeployImgUrl);
         this.nearConnect();
     }
     onHighlight = (x, y) => {
         let highlightCell = this.state.allCells[locationKey({x, y})]
         if (highlightCell != this.state.highlightCell) {
+            const movePath = (this.state.actionType == 'move') ? this.calculatePath(highlightCell) : null;
             this.setState({
                 highlightCell,
-                movePath: this.calculatePath(highlightCell)
+                movePath,
             })
         }
     }
@@ -381,6 +394,19 @@ class Game extends React.Component {
             .then((res) => this.updateView(res.lastResult))
             .catch((e) => console.log(e));
     }
+    takeAction = () => {
+        if (this.state.actionType == 'move') {
+            return this.movePlayer();
+        }
+    }
+    handleActionChange = (actionType) => {
+        if (this.state.actionType != actionType) {
+            this.setState({actionType});
+            if (actionType == 'deploy') {
+                this.fetchCells(true).catch(console.log);
+            }
+        }
+    }
     render() {
         let control;
         if (this.walletAccount && this.walletAccount.isSignedIn()) {
@@ -411,7 +437,18 @@ class Game extends React.Component {
                           allCells={this.state.allCells} onHighlight={this.onHighlight}
                           images={this.state.images} cellInfos={this.state.cellInfos}
                           player={this.state.player} movePath={this.state.movePath}
-                          onClick={this.movePlayer} />
+                          actionType={this.state.actionType}
+                          onClick={this.takeAction} />
+                    <ToggleButtonGroup
+                        aria-label="Action"
+                        name="action-types"
+                        value={this.state.actionType}
+                        onChange={(v) => this.handleActionChange(v)}
+                    >
+                        <ToggleButton variant="outline-secondary" value={"inspect"}>👀Inspect</ToggleButton>
+                        <ToggleButton variant="outline-secondary" value={"move"}>👣Move</ToggleButton>
+                        <ToggleButton variant="outline-secondary" value={"deploy"}>🏗Build</ToggleButton>
+                    </ToggleButtonGroup>
                 </Tab>
                 <Tab eventKey="cell-view" title="🏢Cell View" disabled={!isWebPage}>
                     {isWebPage && <MiniGameView url={cellInfo.webUrl} contractId={cellInfo.contractId} />}
