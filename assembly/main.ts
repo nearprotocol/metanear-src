@@ -3,13 +3,14 @@ export { memory };
 
 import { context, storage, near, collections, ContractPromise } from "./near";
 
-import { ItemInfo, Item, Location, Player, View, CellInfo, TakeItemFromPlayerArgs, ItemWasTakenArgs } from "./model.near";
+import { ItemInfo, Item, Location, Player, View, CellInfo, TakeItemFromPlayerArgs, ItemWasTakenArgs,
+    RenderInfo, OnDeployArgs } from "./model.near";
 
 const KEY_INITIATED = "initiated";
+const METHOD_NAME_ON_DEPLOY = "onDeploy";
 
 const MAX_DISTANCE_TO_SEE: i32 = 7;
 const NUM_CELLS_YOU_SEE: i32 = 15 * 15;
-const MAX_DISTANCE_TO_MOVE: i32 = 7;
 const MAX_DISTANCE_TO_DEPLOY: i32 = 7;
 const DX: i32[] = [1, 0, -1, 0];
 const DY: i32[] = [0, 1, 0, -1];
@@ -24,6 +25,7 @@ const CELL_ID_N = 8;
 
 // --- contract code goes below
 
+let renderInfos = collections.vector<RenderInfo>("renderInfos");
 
 let players = collections.map<string, Player>("players");
 
@@ -55,6 +57,7 @@ export function getItemInfo(itemId: i32): ItemInfo {
 }
 
 export function createNewItem(itemInfo: ItemInfo): i32 {
+  assert(renderInfos.containsIndex(itemInfo.renderId), "Missing render info");
   itemInfo.owner = context.sender;
   return itemInfos.push(itemInfo);
 }
@@ -203,6 +206,18 @@ export function move(path: i32[]): View {
   return lookAround(p.accountId);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Renders
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+export function getRenderInfo(renderId: i32): RenderInfo {
+    return renderInfos[renderId];
+}
+
+export function createNewRender(renderInfo: RenderInfo): i32 {
+    return renderInfos.push(renderInfo);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Cells
@@ -213,6 +228,7 @@ export function getCellInfo(cellId: i32): CellInfo {
 }
 
 export function createNewCell(cellInfo: CellInfo): i32 {
+  assert(renderInfos.containsIndex(cellInfo.renderId), "Missing render info");
   cellInfo.owner = context.sender;
   return cellInfos.push(cellInfo);
 }
@@ -252,6 +268,36 @@ function getCellId(location: Location): i32 {
   }
 }
 
+export function updateCellByContract(location: Location, cellId: i32): void {
+  assert(cellInfos.containsIndex(cellId), "Unknown cell type");
+  let cellInfo = getCellInfo(cellId);
+  if (!cellInfo.otherPlayersCanDeploy) {
+    assert(context.sender == cellInfo.owner, "This cell type can't be deployed by other players");
+  }
+  let currentCellId = getCellId(location);
+  let currentCellInfo = getCellInfo(currentCellId);
+  assert(currentCellInfo.contractCanUpdate, "Cell at the given location can't be updated by the contract");
+  assert(context.sender == currentCellInfo.contractId, "Only contract can change types of its cells");
+  cellIds.set(location.key(), cellId);
+  // Calling contract with onDeploy
+  if (cellInfo.contractId != null && cellInfo.contractId.length > 0 && context.manaLeft > 0) {
+    let owner = cellOwners.get(location.key());
+    let args: OnDeployArgs = {
+      owner,
+      location,
+      cellId,
+      updatedByContract: currentCellInfo.contractId,
+    };
+    ContractPromise.create(
+      cellInfo.contractId,
+      METHOD_NAME_ON_DEPLOY,
+      args.encode(),
+      context.manaLeft - 1,
+      0,
+    );
+  }
+}
+
 export function deploy(dx: i32, dy: i32, cellId: i32): void {
   // Check cellID
   assert(cellInfos.containsIndex(cellId), "Unknown cell type");
@@ -275,6 +321,21 @@ export function deploy(dx: i32, dy: i32, cellId: i32): void {
   cellIds.set(locationKey, cellId);
   if (cellOwner == null) {
     cellOwners.set(locationKey, p.accountId);
+  }
+  // Calling contract with onDeploy
+  if (cellInfo.contractId != null && cellInfo.contractId.length > 0 && context.manaLeft > 0) {
+    let args: OnDeployArgs = {
+      owner: p.accountId,
+      location,
+      cellId,
+    };
+    ContractPromise.create(
+      cellInfo.contractId,
+      METHOD_NAME_ON_DEPLOY,
+      args.encode(),
+      context.manaLeft - 1,
+      0,
+    );
   }
 }
 
@@ -344,50 +405,60 @@ export function init(isTest: bool): void {
   for (let i = 0; i < N.length; ++i) {
     for (let j = 0; j < N[i].length; ++j) {
       if (N[i][j]) {
-        cellIds.set(Location.create(-6 + j, -6 + i).key(), CELL_ID_WALL);
+        let key = Location.create(-6 + j, -6 + i).key();
+        cellIds.set(key, CELL_ID_WALL);
+        cellOwners.set(key, owner);
       }
     }
   }
   storage.set<bool>(KEY_INITIATED, true);
+  renderInfos.push({ imageUrl: "/static/imgs/start.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/road.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/grass0.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/grass1.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/grass2.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/grass3.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/water.png" });
+  renderInfos.push({ imageUrl: "/static/imgs/wall.png" });
   cellInfos.push({
     webUrl: "/start/",
-    imageUrl: "/static/imgs/start.png",
+    renderId: 0,
     owner,
     otherPlayersCanDeploy: false,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/road.png",
+    renderId: 1,
     owner,
     otherPlayersCanDeploy: false,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/grass0.png",
+    renderId: 2,
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/grass1.png",
+    renderId: 3,
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/grass2.png",
+    renderId: 4,
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/grass3.png",
+    renderId: 5,
     owner,
     otherPlayersCanDeploy: true,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/water.png",
+    renderId: 6,
     owner,
     otherPlayersCanDeploy: true,
     blocking: true,
   });
   cellInfos.push({
-    imageUrl: "/static/imgs/wall.png",
+    renderId: 7,
     owner,
     otherPlayersCanDeploy: true,
     blocking: true,
