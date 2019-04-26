@@ -3,7 +3,7 @@ import { Tabs, Tab, ToggleButtonGroup, ToggleButton } from 'react-bootstrap'
 import Head from 'next/head'
 // import { Near } from 'nearlib'
 
-const USE_WALLET = false;
+const USE_WALLET = true;
 const contractId = "metanear-dev-004";
 const localStorageKeyCellInfoPrefix = "cellInfo:";
 const localStorageKeyRenderInfoPrefix = "renderInfo:";
@@ -12,7 +12,7 @@ const playerImgUrl = '/static/imgs/player.png';
 const cantDeployImgUrl = '/static/imgs/cant_deploy.png';
 const viewDistance = 7;
 const localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
-const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.4.7/dist/nearlib.js';
+const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.5.2/dist/nearlib.js';
 const DX = [1, 0, -1, 0];
 const DY = [0, 1, 0, -1];
 

@@ -23286,16 +23286,16 @@ __webpack_require__.r(__webpack_exports__);
 
  // import { Near } from 'nearlib'
 
-var USE_WALLET = false;
-var contractId = "metanear-dev-002";
-var localStorageKeyCellPrefix = "cell:";
+var USE_WALLET = true;
+var contractId = "metanear-dev-004";
 var localStorageKeyCellInfoPrefix = "cellInfo:";
+var localStorageKeyRenderInfoPrefix = "renderInfo:";
 var appTitle = "Meta NEAR";
-var baseUrl = "http://localhost:3000";
 var playerImgUrl = '/static/imgs/player.png';
+var cantDeployImgUrl = '/static/imgs/cant_deploy.png';
 var viewDistance = 7;
 var localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
-var devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.4.7/dist/nearlib.js';
+var devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.5.2/dist/nearlib.js';
 var DX = [1, 0, -1, 0];
 var DY = [0, 1, 0, -1];
 
@@ -23305,10 +23305,6 @@ var locationKey = function locationKey(location) {
 
 var cellKey = function cellKey(cell) {
   return locationKey(cell.location);
-};
-
-var grassColor = function grassColor(a) {
-  return "rgb(".concat(Math.round(86 * a), ", ").concat(Math.round(125 * a), ", ").concat(Math.round(70 * a), ")");
 };
 
 var _offsetCache = [];
@@ -23372,21 +23368,6 @@ function (_React$Component) {
       var centerY = this.props.height / 2 - this.props.cellHeight / 2;
       var cellNumberX = this.props.width / this.props.cellWidth;
       var cellNumberY = this.props.height / this.props.cellHeight;
-      /*
-      ctx.fillStyle = "#FF0000";
-      for (let i =  - cellNumberX / 2; i < cellNumberX / 2; ++i) {
-          ctx.beginPath()
-          ctx.moveTo(centerX + i * this.props.cellWidth, 0)
-          ctx.lineTo(centerX + i * this.props.cellWidth, this.props.height)
-          ctx.stroke()
-      }
-      for (let i = - cellNumberY; i < cellNumberY; ++i) {
-          ctx.beginPath()
-          ctx.moveTo(0, centerY + (i - 0.7) * this.props.cellHeight)
-          ctx.lineTo(this.props.width, centerY + (i - 0.7) * this.props.cellHeight)
-          ctx.stroke()
-      }
-      */
 
       var dxDy = function dxDy(location) {
         return {
@@ -23423,11 +23404,18 @@ function (_React$Component) {
         var cellInfo = _this2.props.cellInfos[cell.cellId];
         var d = dxDy(cell.location);
         var rect = dxDyRect(d);
-        var rendered = cellInfo && renderImg(rect, cellInfo.imageUrl);
+        var renderInfo = cellInfo && _this2.props.renderInfos[cellInfo.renderId];
+        var rendered = renderInfo && renderImg(rect, renderInfo.imageUrl);
 
         if (!rendered) {
           ctx.fillStyle = 'rgba(64, 0, 0, 1.0)';
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+        }
+
+        if (_this2.props.actionType == 'deploy') {
+          if (!cell.canDeploy) {
+            renderImg(rect, cantDeployImgUrl);
+          }
         }
       });
 
@@ -23435,39 +23423,42 @@ function (_React$Component) {
         dx: 0,
         dy: 0
       }), playerImgUrl);
-      var path = this.props.movePath;
 
-      if (path) {
-        var pos = {
-          dx: 0,
-          dy: 0
-        };
+      if (this.props.actionType == 'move') {
+        var path = this.props.movePath;
 
-        for (var i = 0; i < path.length; ++i) {
-          pos = {
-            dx: pos.dx + DX[path[i]],
-            dy: pos.dy + DY[path[i]]
+        if (path) {
+          var pos = {
+            dx: 0,
+            dy: 0
           };
-          renderImg(dxDyRect(pos), playerImgUrl);
+
+          for (var i = 0; i < path.length; ++i) {
+            pos = {
+              dx: pos.dx + DX[path[i]],
+              dy: pos.dy + DY[path[i]]
+            };
+            renderImg(dxDyRect(pos), playerImgUrl);
+          }
         }
       }
 
-      document.addEventListener('mousemove', this.onMouseMove, false);
+      canvas.addEventListener('mousemove', this.onMouseMove, false);
     }
   }, {
     key: "componentWillUnmount",
     value: function componentWillUnmount() {
-      document.removeEventListener('mousemove', this.onMouseMove, false);
+      canvas.removeEventListener('mousemove', this.onMouseMove, false);
     }
   }, {
     key: "render",
     value: function render() {
-      return react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("canvas", {
+      return react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement("canvas", {
         ref: "canvas",
         width: this.props.width,
         height: this.props.height,
         onClick: this.props.onClick
-      });
+      }));
     }
   }]);
 
@@ -23548,7 +23539,10 @@ function (_React$Component4) {
         src: this.props.url,
         frameBorder: "0",
         width: "100%",
-        height: "100%"
+        height: "100%",
+        style: {
+          minHeight: 600
+        }
       });
     }
   }]);
@@ -23568,13 +23562,13 @@ function (_React$Component5) {
 
     _this3 = Object(_babel_runtime_corejs2_helpers_esm_possibleConstructorReturn__WEBPACK_IMPORTED_MODULE_7__["default"])(this, Object(_babel_runtime_corejs2_helpers_esm_getPrototypeOf__WEBPACK_IMPORTED_MODULE_8__["default"])(Game).call(this, props));
 
-    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "fetchImage", function (imageUrl) {
-      if (imageUrl in _this3.fetchingImages) {
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "maybeFetchImage", function (imageUrl) {
+      if (!imageUrl || imageUrl in _this3.fetchingImages) {
         return;
       }
 
       _this3.fetchingImages[imageUrl] = true;
-      var image = new Image(32, 32);
+      var image = new Image();
 
       image.onload = function () {
         var images = {};
@@ -23588,22 +23582,33 @@ function (_React$Component5) {
       image.src = imageUrl;
     });
 
-    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "addCellInfo", function (cellId, cellInfo) {
-      cellInfo.cellId = cellId;
-      var cellInfos = {};
-      cellInfos[cellId] = cellInfo;
-      localStorage.setItem(localStorageKeyCellInfoPrefix + cellId, _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(cellInfo));
-
-      if (cellInfo.imageUrl) {
-        _this3.fetchImage(cellInfo.imageUrl);
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "maybeFetchRenderInfo", function (renderId) {
+      if (renderId in _this3.fetchingRenderInfos) {
+        return;
       }
 
-      _this3.setState({
-        cellInfos: _babel_runtime_corejs2_core_js_object_assign__WEBPACK_IMPORTED_MODULE_3___default()(_this3.state.cellInfos, cellInfos)
+      _this3.fetchingRenderInfos[renderId] = true;
+
+      _this3.contract.getRenderInfo({
+        renderId: renderId
+      }).then(function (renderInfo) {
+        renderInfo.renderId = renderId;
+        var renderInfos = {};
+        renderInfos[renderId] = renderInfo;
+        localStorage.setItem(localStorageKeyRenderInfoPrefix + renderId, _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(renderInfo));
+
+        _this3.maybeFetchImage(renderInfo.imageUrl);
+
+        _this3.setState({
+          renderInfos: _babel_runtime_corejs2_core_js_object_assign__WEBPACK_IMPORTED_MODULE_3___default()(_this3.state.renderInfos, renderInfos)
+        });
+      }).catch(function (e) {
+        console.log(e);
+        _this3.fetchingRenderInfos[cellId] = null;
       });
     });
 
-    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "checkCellInfo", function (cellId) {
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "maybeFetchCellInfo", function (cellId) {
       if (cellId in _this3.fetchingCellInfos) {
         return;
       }
@@ -23613,7 +23618,16 @@ function (_React$Component5) {
       _this3.contract.getCellInfo({
         cellId: cellId
       }).then(function (cellInfo) {
-        return _this3.addCellInfo(cellId, cellInfo);
+        cellInfo.cellId = cellId;
+        var cellInfos = {};
+        cellInfos[cellId] = cellInfo;
+        localStorage.setItem(localStorageKeyCellInfoPrefix + cellId, _babel_runtime_corejs2_core_js_json_stringify__WEBPACK_IMPORTED_MODULE_12___default()(cellInfo));
+
+        _this3.maybeFetchRenderInfo(cellInfo.renderId);
+
+        _this3.setState({
+          cellInfos: _babel_runtime_corejs2_core_js_object_assign__WEBPACK_IMPORTED_MODULE_3___default()(_this3.state.cellInfos, cellInfos)
+        });
       }).catch(function (e) {
         console.log(e);
         _this3.fetchingCellInfos[cellId] = null;
@@ -23635,12 +23649,13 @@ function (_React$Component5) {
           };
           var cell = {
             location: location,
-            cellId: cellId
+            cellId: cellId,
+            canDeploy: view.freeCells && view.freeCells[i]
           };
 
-          _this3.checkCellInfo(cellId);
+          _this3.maybeFetchCellInfo(cellId);
 
-          cells[cellKey(cell)] = cell; // localStorage.setItem(localStorageKeyCellPrefix + cellKey(cell), JSON.stringify(cell))
+          cells[cellKey(cell)] = cell;
         });
       }
 
@@ -23654,32 +23669,39 @@ function (_React$Component5) {
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "fetchCells",
     /*#__PURE__*/
-    Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
-    /*#__PURE__*/
-    _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_1___default.a.mark(function _callee() {
-      var accountId, view;
-      return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_1___default.a.wrap(function _callee$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              accountId = _this3.state.player ? _this3.state.player.accountId : 'metanear';
-              _context.next = 3;
-              return _this3.contract.lookAround({
-                accountId: accountId
-              });
+    function () {
+      var _ref = Object(_babel_runtime_corejs2_helpers_esm_asyncToGenerator__WEBPACK_IMPORTED_MODULE_2__["default"])(
+      /*#__PURE__*/
+      _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_1___default.a.mark(function _callee(withOwned) {
+        var accountId, view;
+        return _babel_runtime_corejs2_regenerator__WEBPACK_IMPORTED_MODULE_1___default.a.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                accountId = _this3.state.player ? _this3.state.player.accountId : 'metanear';
+                _context.next = 3;
+                return _this3.contract.lookAround({
+                  accountId: accountId,
+                  withOwned: withOwned
+                });
 
-            case 3:
-              view = _context.sent;
+              case 3:
+                view = _context.sent;
 
-              _this3.updateView(view);
+                _this3.updateView(view);
 
-            case 5:
-            case "end":
-              return _context.stop();
+              case 5:
+              case "end":
+                return _context.stop();
+            }
           }
-        }
-      }, _callee);
-    })));
+        }, _callee);
+      }));
+
+      return function (_x) {
+        return _ref.apply(this, arguments);
+      };
+    }());
 
     Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "nearConnect",
     /*#__PURE__*/
@@ -23728,7 +23750,7 @@ function (_React$Component5) {
               console.log(accountId);
               _context2.next = 15;
               return near.loadContract(contractId, {
-                viewMethods: ["lookAround", "getPlayer", "getCellInfo"],
+                viewMethods: ["lookAround", "getPlayer", "getCellInfo", "getRenderInfo"],
                 changeMethods: ["move", "deploy", "init", "createNewCell"],
                 sender: accountId
               });
@@ -23758,7 +23780,7 @@ function (_React$Component5) {
 
             case 23:
               _context2.next = 25;
-              return _this3.fetchCells();
+              return _this3.fetchCells(false);
 
             case 25:
             case "end":
@@ -23775,9 +23797,11 @@ function (_React$Component5) {
       })];
 
       if (highlightCell != _this3.state.highlightCell) {
+        var movePath = _this3.state.actionType == 'move' ? _this3.calculatePath(highlightCell) : null;
+
         _this3.setState({
           highlightCell: highlightCell,
-          movePath: _this3.calculatePath(highlightCell)
+          movePath: movePath
         });
       }
     });
@@ -23800,20 +23824,22 @@ function (_React$Component5) {
       var visited = {};
       var q = [];
 
-      var add = function add(st) {
+      var add = function add(st, forced) {
         var key = locationKey({
           x: st.x,
           y: st.y
         });
 
-        if (key in visited || !(key in _this3.state.allCells)) {
-          return;
-        }
+        if (!forced) {
+          if (key in visited || !(key in _this3.state.allCells)) {
+            return;
+          }
 
-        var cellInfo = _this3.state.cellInfos[_this3.state.allCells[key].cellId];
+          var cellInfo = _this3.state.cellInfos[_this3.state.allCells[key].cellId];
 
-        if (!cellInfo || cellInfo.blocking) {
-          return;
+          if (!cellInfo || cellInfo.blocking) {
+            return;
+          }
         }
 
         visited[key] = st;
@@ -23825,7 +23851,7 @@ function (_React$Component5) {
         y: py,
         dir: -1,
         last: null
-      });
+      }, true);
 
       for (var i = 0; i < q.length; ++i) {
         var cur = q[i];
@@ -23848,7 +23874,7 @@ function (_React$Component5) {
             y: cur.y + DY[j],
             dir: j,
             last: cur
-          });
+          }, false);
         }
       }
 
@@ -23869,17 +23895,38 @@ function (_React$Component5) {
       });
     });
 
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "takeAction", function () {
+      if (_this3.state.actionType == 'move') {
+        return _this3.movePlayer();
+      }
+    });
+
+    Object(_babel_runtime_corejs2_helpers_esm_defineProperty__WEBPACK_IMPORTED_MODULE_11__["default"])(Object(_babel_runtime_corejs2_helpers_esm_assertThisInitialized__WEBPACK_IMPORTED_MODULE_9__["default"])(_this3), "handleActionChange", function (actionType) {
+      if (_this3.state.actionType != actionType) {
+        _this3.setState({
+          actionType: actionType
+        });
+
+        if (actionType == 'deploy') {
+          _this3.fetchCells(true).catch(console.log);
+        }
+      }
+    });
+
     _this3.state = {
       allCells: {},
       highlightCell: {},
       images: {},
+      renderInfos: {},
       movePath: null,
       player: null,
       cellInfos: {},
-      tabKey: "info"
+      tabKey: "info",
+      actionType: "move"
     };
     _this3.fetchingImages = {};
     _this3.fetchingCellInfos = {};
+    _this3.fetchingRenderInfos = {};
     _this3.walletAccount = null;
     return _this3;
   }
@@ -23889,6 +23936,24 @@ function (_React$Component5) {
     value: function componentDidMount() {
       var _this4 = this;
 
+      var renderInfos = {};
+
+      _babel_runtime_corejs2_core_js_object_keys__WEBPACK_IMPORTED_MODULE_0___default()(localStorage).forEach(function (key) {
+        if (key.startsWith(localStorageKeyRenderInfoPrefix)) {
+          try {
+            var renderInfo = JSON.parse(localStorage.getItem(key));
+
+            if (localStorageKeyRenderInfoPrefix + renderInfo.renderId == key) {
+              _this4.maybeFetchImage(renderInfo.imageUrl);
+
+              renderInfos[renderInfo.renderId] = renderInfo;
+              _this4.fetchingRenderInfos[renderInfo.renderId] = true;
+            }
+          } catch (err) {// whatever
+          }
+        }
+      });
+
       var cellInfos = {};
 
       _babel_runtime_corejs2_core_js_object_keys__WEBPACK_IMPORTED_MODULE_0___default()(localStorage).forEach(function (key) {
@@ -23897,11 +23962,10 @@ function (_React$Component5) {
             var cellInfo = JSON.parse(localStorage.getItem(key));
 
             if (localStorageKeyCellInfoPrefix + cellInfo.cellId == key) {
-              if (cellInfo.imageUrl) {
-                _this4.fetchImage(cellInfo.imageUrl);
-              }
+              _this4.maybeFetchRenderInfo(cellInfo.renderId);
 
               cellInfos[cellInfo.cellId] = cellInfo;
+              _this4.fetchingCellInfos[cellInfo.cellId] = true;
             }
           } catch (err) {// whatever
           }
@@ -23909,9 +23973,11 @@ function (_React$Component5) {
       });
 
       this.setState({
-        cellInfos: cellInfos
+        cellInfos: cellInfos,
+        renderInfos: renderInfos
       });
-      this.fetchImage(playerImgUrl);
+      this.maybeFetchImage(playerImgUrl);
+      this.maybeFetchImage(cantDeployImgUrl);
       this.nearConnect();
     }
   }, {
@@ -23938,8 +24004,8 @@ function (_React$Component5) {
         var cell = this.state.allCells[locationKey(this.state.player.location)];
 
         if (cell) {
-          var cellId = cell.cellId;
-          cellInfo = this.state.cellInfos[cellId];
+          var _cellId = cell.cellId;
+          cellInfo = this.state.cellInfos[_cellId];
         }
       }
 
@@ -23967,10 +24033,28 @@ function (_React$Component5) {
         onHighlight: this.onHighlight,
         images: this.state.images,
         cellInfos: this.state.cellInfos,
+        renderInfos: this.state.renderInfos,
         player: this.state.player,
         movePath: this.state.movePath,
-        onClick: this.movePlayer
-      })), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["Tab"], {
+        actionType: this.state.actionType,
+        onClick: this.takeAction
+      }), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["ToggleButtonGroup"], {
+        "aria-label": "Action",
+        name: "action-types",
+        value: this.state.actionType,
+        onChange: function onChange(v) {
+          return _this5.handleActionChange(v);
+        }
+      }, react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["ToggleButton"], {
+        variant: "outline-secondary",
+        value: "inspect"
+      }, "\uD83D\uDC40Inspect"), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["ToggleButton"], {
+        variant: "outline-secondary",
+        value: "move"
+      }, "\uD83D\uDC63Move"), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["ToggleButton"], {
+        variant: "outline-secondary",
+        value: "deploy"
+      }, "\uD83C\uDFD7Build"))), react__WEBPACK_IMPORTED_MODULE_13___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_14__["Tab"], {
         eventKey: "cell-view",
         title: "\uD83C\uDFE2Cell View",
         disabled: !isWebPage
