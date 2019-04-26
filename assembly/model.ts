@@ -1,15 +1,16 @@
 export class AnimationFrame {
-    x: i32;
-    y: i32;
-    width: i32;
-    height: i32;
-    // Duration in 1/60 seconds ticks
-    duration: i32;
+  x: i32;
+  y: i32;
+  width: i32;
+  height: i32;
+  // Duration in 1/60 seconds ticks
+  duration: i32;
 }
 
 export class RenderInfo {
-    imageUrl: string;
-    animations: AnimationFrame[];
+  backgroundRenderId: i32;
+  imageId: i32;
+  animations: AnimationFrame[];
 }
 
 export class CellInfo {

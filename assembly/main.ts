@@ -25,6 +25,7 @@ const CELL_ID_N = 8;
 
 // --- contract code goes below
 
+let imageUrls = collections.vector<string>("images");
 let renderInfos = collections.vector<RenderInfo>("renderInfos");
 
 let players = collections.map<string, Player>("players");
@@ -211,12 +212,23 @@ export function move(path: i32[]): View {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-export function getRenderInfo(renderId: i32): RenderInfo {
-    return renderInfos[renderId];
+
+export function getImageUrl(imageId: i32): string {
+  return imageUrls[imageId];
 }
 
-export function createNewRender(renderInfo: RenderInfo): i32 {
-    return renderInfos.push(renderInfo);
+export function addImageUrl(imageUrl: string): i32 {
+  return imageUrls.push(imageUrl);
+}
+
+export function getRenderInfo(renderId: i32): RenderInfo {
+  return renderInfos[renderId];
+}
+
+export function addRenderInfo(renderInfo: RenderInfo): i32 {
+  assert(renderInfos.containsIndex(renderInfo.backgroundRenderId), "Background render index is out of range");
+  assert(imageUrls.containsIndex(renderInfo.imageId), "Image ID is out of range");
+  return renderInfos.push(renderInfo);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,7 +239,7 @@ export function getCellInfo(cellId: i32): CellInfo {
   return cellInfos[cellId];
 }
 
-export function createNewCell(cellInfo: CellInfo): i32 {
+export function addCellInfo(cellInfo: CellInfo): i32 {
   assert(renderInfos.containsIndex(cellInfo.renderId), "Missing render info");
   cellInfo.owner = context.sender;
   return cellInfos.push(cellInfo);
@@ -412,14 +424,22 @@ export function init(isTest: bool): void {
     }
   }
   storage.set<bool>(KEY_INITIATED, true);
-  renderInfos.push({ imageUrl: "/static/imgs/start.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/road.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/grass0.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/grass1.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/grass2.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/grass3.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/water.png" });
-  renderInfos.push({ imageUrl: "/static/imgs/wall.png" });
+  imageUrls.push("/static/imgs/start.png");
+  imageUrls.push("/static/imgs/road.png");
+  imageUrls.push("/static/imgs/grass0.png");
+  imageUrls.push("/static/imgs/grass1.png");
+  imageUrls.push("/static/imgs/grass2.png");
+  imageUrls.push("/static/imgs/grass3.png");
+  imageUrls.push("/static/imgs/water.png");
+  imageUrls.push("/static/imgs/wall.png");
+  renderInfos.push({ imageId: 0 });
+  renderInfos.push({ imageId: 1 });
+  renderInfos.push({ imageId: 2 });
+  renderInfos.push({ imageId: 3 });
+  renderInfos.push({ imageId: 4 });
+  renderInfos.push({ imageId: 5 });
+  renderInfos.push({ imageId: 6 });
+  renderInfos.push({ imageId: 7 });
   cellInfos.push({
     webUrl: "/start/",
     renderId: 0,
