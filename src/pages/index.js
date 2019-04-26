@@ -283,7 +283,7 @@ class Game extends React.Component {
         console.log(accountId);
         this.contract = await near.loadContract(contractId, {
             viewMethods: ["lookAround", "getPlayer", "getCellInfo", "getRenderInfo"],
-            changeMethods: ["move", "deploy", "init", "createNewCell"],
+            changeMethods: ["move", "deploy", "init", "createNewCell", "createNewRender"],
             sender: accountId,
         });
         window.contract = this.contract
