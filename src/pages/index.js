@@ -12,7 +12,7 @@ const playerImgUrl = '/static/imgs/player.png';
 const cantDeployImgUrl = '/static/imgs/cant_deploy.png';
 const viewDistance = 7;
 const localNearlibUrl = 'https://cdn.jsdelivr.net/gh/nearprotocol/nearcore@master/nearlib/dist/nearlib.js';
-const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.5.4/dist/nearlib.js';
+const devnetNearlibUrl = 'https://cdn.jsdelivr.net/npm/nearlib@0.5.2/dist/nearlib.js';
 const DX = [1, 0, -1, 0];
 const DY = [0, 1, 0, -1];
 
