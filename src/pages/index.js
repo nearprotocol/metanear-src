@@ -38,8 +38,18 @@ const cellOffsets = (i) => {
 
 class Grid extends React.Component {
   componentDidUpdate(prevProps, prevState, snapshot) {
-    const canvas = this.refs.canvas
-    const ctx = canvas.getContext("2d")
+    const canvas = this.refs.canvas;
+    const ctx = canvas.getContext("2d");
+    let dpr = window.devicePixelRatio || 1;
+    // Get the size of the canvas in CSS pixels.
+    let rect = canvas.getBoundingClientRect();
+    // Give the canvas pixel dimensions of their CSS
+    // size * the device pixel ratio.
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    // Scale all drawing operations by the dpr, so you
+    // don't have to worry about the difference.
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, this.props.width, this.props.height);
     const centerX = this.props.width / 2 - this.props.cellWidth / 2
     const centerY = this.props.height / 2 - this.props.cellHeight / 2
@@ -114,6 +124,7 @@ class Grid extends React.Component {
     }
     canvas.addEventListener('mousemove', this.onMouseMove, false)
   }
+
   componentWillUnmount() {
     canvas.removeEventListener('mousemove', this.onMouseMove, false)
   }
@@ -127,7 +138,8 @@ class Grid extends React.Component {
   render() {
     return (
       <div>
-        <canvas ref="canvas" width={this.props.width} height={this.props.height} onClick={this.props.onClick} />
+        <canvas ref="canvas" onClick={this.props.onClick} width={this.props.width} height={this.props.height}
+                style={{width: this.props.width, height: this.props.height}} />
       </div>
     )
   }
@@ -507,6 +519,7 @@ class Game extends React.Component {
         cellInfo = this.state.cellInfos[cellId];
       }
     }
+    const cellSize = 32;
     const isWebPage = cellInfo && !!cellInfo.webUrl;
     return (
       <Tabs
@@ -518,7 +531,7 @@ class Game extends React.Component {
           {control}
         </Tab>
         <Tab eventKey="map" title="🌎World">
-          <Grid width={32 * 15} height={32 * 15} cellWidth={32} cellHeight={32}
+          <Grid width={cellSize * 15} height={cellSize * 15} cellWidth={cellSize} cellHeight={cellSize}
                 allCells={this.state.allCells}
                 onHighlight={this.onHighlight}
                 images={this.state.images}
@@ -528,7 +541,7 @@ class Game extends React.Component {
                 player={this.state.player}
                 movePath={this.state.movePath}
                 actionType={this.state.actionType}
-                onClick={this.takeAction} />
+                onClick={this.takeAction}/>
           <ToggleButtonGroup
             aria-label="Action"
             name="action-types"

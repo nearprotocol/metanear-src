@@ -3521,7 +3521,7 @@ function Index() {
 
 /***/ }),
 
-/***/ 3:
+/***/ 2:
 /*!******************************************************************************************************************************************!*\
   !*** multi next-client-pages-loader?page=%2Fstart&absolutePagePath=%2FUsers%2Fh3r0k1ll3r%2Fcode%2Fmetanear-src%2Fsrc%2Fpages%2Fstart.js ***!
   \******************************************************************************************************************************************/
@@ -3544,5 +3544,5 @@ module.exports = dll_1aef2d0bbc0d334d831c;
 
 /***/ })
 
-},[[3,"static/runtime/webpack.js"]]]));;
+},[[2,"static/runtime/webpack.js"]]]));;
 //# sourceMappingURL=start.js.map

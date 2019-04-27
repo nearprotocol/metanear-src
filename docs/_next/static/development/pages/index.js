@@ -23530,6 +23530,16 @@ function (_React$Component) {
 
       var canvas = this.refs.canvas;
       var ctx = canvas.getContext("2d");
+      var dpr = window.devicePixelRatio || 1; // Get the size of the canvas in CSS pixels.
+
+      var rect = canvas.getBoundingClientRect(); // Give the canvas pixel dimensions of their CSS
+      // size * the device pixel ratio.
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr; // Scale all drawing operations by the dpr, so you
+      // don't have to worry about the difference.
+
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, this.props.width, this.props.height);
       var centerX = this.props.width / 2 - this.props.cellWidth / 2;
       var centerY = this.props.height / 2 - this.props.cellHeight / 2;
@@ -23633,9 +23643,13 @@ function (_React$Component) {
     value: function render() {
       return react__WEBPACK_IMPORTED_MODULE_15___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_15___default.a.createElement("canvas", {
         ref: "canvas",
+        onClick: this.props.onClick,
         width: this.props.width,
         height: this.props.height,
-        onClick: this.props.onClick
+        style: {
+          width: this.props.width,
+          height: this.props.height
+        }
       }));
     }
   }]);
@@ -24252,6 +24266,7 @@ function (_React$Component5) {
         }
       }
 
+      var cellSize = 32;
       var isWebPage = cellInfo && !!cellInfo.webUrl;
       return react__WEBPACK_IMPORTED_MODULE_15___default.a.createElement(react_bootstrap__WEBPACK_IMPORTED_MODULE_16__["Tabs"], {
         id: "controlled-tab-example",
@@ -24268,10 +24283,10 @@ function (_React$Component5) {
         eventKey: "map",
         title: "\uD83C\uDF0EWorld"
       }, react__WEBPACK_IMPORTED_MODULE_15___default.a.createElement(Grid, {
-        width: 32 * 15,
-        height: 32 * 15,
-        cellWidth: 32,
-        cellHeight: 32,
+        width: cellSize * 15,
+        height: cellSize * 15,
+        cellWidth: cellSize,
+        cellHeight: cellSize,
         allCells: this.state.allCells,
         onHighlight: this.onHighlight,
         images: this.state.images,
